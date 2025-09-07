@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Portal{% endblock %}
+
+{% block content %}
+    <div class="admin-dashboard">
+        <h2>Welcome to the Admin Dashboard</h2>
+        <p>Hello, {{ current_user.username }}. Here's a summary of your coaching institution.</p>
+
+        <div class="kpi-container">
+            <div class="kpi-card">
+                <h3>Total Students</h3>
+                <p class="kpi-value">{{ total_students }}</p>
+            </div>
+            <div class="kpi-card">
+                <h3>Total Staff</h3>
+                <p class="kpi-value">{{ total_staff }}</p>
+            </div>
+            <div class="kpi-card">
+                <h3>Fees Collected</h3>
+                <p class="kpi-value">₹ {{ fees_collected }}</p>
+            </div>
+            <div class="kpi-card">
+                <h3>Pending Fees</h3>
+                <p class="kpi-value">₹ {{ pending_fees }}</p>
+            </div>
+        </div>
+        
+        </div>
+{% endblock %}
