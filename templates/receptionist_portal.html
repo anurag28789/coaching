@@ -5,4 +5,5 @@
 {% block content %}
     <h2>Welcome to the Receptionist Portal, {{ current_user.id }}</h2>
     <p>This is where you'll manage student admissions and fees.</p>
-    {% endblock %}
+    <a href="{{ url_for('add_enquiry') }}">Add New Enquiry</a>
+{% endblock %}

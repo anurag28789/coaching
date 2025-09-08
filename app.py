@@ -1,6 +1,7 @@
-from flask import Flask, render_template, request, redirect, url_for, session
+import site
+from flask import Flask, render_template, request, redirect, url_for, session, flash
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
-from models import db, bcrypt, User, Student, Staff  # import db & models together
+from models import db, bcrypt, User, Student, Staff, Enquiry, Receptionist # Import the new Enquiry model
 
 # Initialize the Flask application
 app = Flask(__name__)
@@ -65,6 +66,41 @@ def admin_portal():
         )
     return redirect(url_for('login'))
 
+@app.route('/admin_portal/add_user', methods=['GET', 'POST'])
+@login_required
+def add_user():
+    if current_user.role != 'admin':
+        return redirect(url_for('login'))
+
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        role = request.form.get('role')
+        name = request.form.get('name')
+
+        existing_user = User.query.filter_by(username=username).first()
+        if existing_user:
+            flash(f"User '{username}' already exists. Please choose a different username.", 'danger')
+            return redirect(url_for('add_user'))
+
+        hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
+        new_user = User(username=username, password_hash=hashed_password, role=role)
+        db.session.add(new_user)
+        db.session.commit()  # commit so new_user.id is available
+
+        if role == 'staff':
+            new_staff = Staff(name=name, user_id=new_user.id)
+            db.session.add(new_staff)
+        elif role == 'receptionist':
+            new_receptionist = Receptionist(name=name, user_id=new_user.id)
+            db.session.add(new_receptionist)
+
+        db.session.commit()
+        flash(f"User '{username}' with role '{role}' created successfully.", 'success')
+        return redirect(url_for('admin_portal'))
+
+    return render_template('add_user.html')
+
 @app.route('/staff_portal')
 @login_required
 def staff_portal():
@@ -78,6 +114,30 @@ def receptionist_portal():
     if current_user.role == 'receptionist':
         return render_template('receptionist_portal.html', current_user=current_user)
     return redirect(url_for('login'))
+
+@app.route('/receptionist_portal/add_enquiry', methods=['GET', 'POST'])
+@login_required
+def add_enquiry():
+    if current_user.role != 'receptionist':
+        return redirect(url_for('login'))
+
+    if request.method == 'POST':
+        name = request.form.get('name')
+        contact = request.form.get('contact')
+        course = request.form.get('course_interest')
+        
+        new_enquiry = Enquiry(
+            name=name,
+            contact=contact,
+            course_interest=course
+        )
+        db.session.add(new_enquiry)
+        db.session.commit()
+        flash(f"Enquiry for {name} submitted successfully!", 'success')
+        return redirect(url_for('receptionist_portal'))
+
+    return render_template('add_enquiry.html')
+
 
 @app.route('/logout')
 @login_required
@@ -106,5 +166,10 @@ def create_initial_data():
             print("Initial users created.")
 
 if __name__ == '__main__':
-    create_initial_data()
+    with app.app_context():       
+        db.create_all()
+        create_initial_data()
     app.run(debug=True)
+
+
+

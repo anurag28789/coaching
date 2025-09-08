@@ -2,7 +2,6 @@ from flask_login import UserMixin
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
 
-# These will be replaced by actual instances from app.py
 db = SQLAlchemy()
 bcrypt = Bcrypt()
 
@@ -31,3 +30,20 @@ class Student(db.Model):
 class Staff(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user = db.relationship('User', backref='staff_profile', uselist=False)
+
+# --- Receptionist Model ---
+class Receptionist(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user = db.relationship('User', backref='receptionist_profile', uselist=False)
+
+# --- Enquiry Model ---
+class Enquiry(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    contact = db.Column(db.String(100), nullable=False)
+    course_interest = db.Column(db.String(100), nullable=True)
+    status = db.Column(db.String(20), nullable=False, default='New')
