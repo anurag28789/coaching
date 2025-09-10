@@ -47,3 +47,15 @@ class Enquiry(db.Model):
     contact = db.Column(db.String(100), nullable=False)
     course_interest = db.Column(db.String(100), nullable=True)
     status = db.Column(db.String(20), nullable=False, default='New')
+
+# --- Course Model ---
+class Course(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), unique=True, nullable=False)
+    subjects = db.relationship('Subject', backref='course', lazy=True)
+
+# --- Subject Model ---
+class Subject(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    course_id = db.Column(db.Integer, db.ForeignKey('course.id'), nullable=False)

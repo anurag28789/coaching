@@ -1,7 +1,7 @@
 import site
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
-from models import db, bcrypt, User, Student, Staff, Enquiry, Receptionist # Import the new Enquiry model
+from models import db, bcrypt, User, Student, Staff, Enquiry, Receptionist, Course, Subject
 
 # Initialize the Flask application
 app = Flask(__name__)
@@ -22,7 +22,7 @@ login_manager.login_view = 'login'
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-# --- Routes (same as before) ---
+# --- Routes ---
 @app.route('/')
 def home():
     return redirect(url_for('login'))
@@ -86,7 +86,7 @@ def add_user():
         hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
         new_user = User(username=username, password_hash=hashed_password, role=role)
         db.session.add(new_user)
-        db.session.commit()  # commit so new_user.id is available
+        db.session.commit()
 
         if role == 'staff':
             new_staff = Staff(name=name, user_id=new_user.id)
@@ -101,6 +101,59 @@ def add_user():
 
     return render_template('add_user.html')
 
+
+@app.route('/admin_portal/courses')
+@login_required
+def view_courses():
+    if current_user.role != 'admin':
+        return redirect(url_for('login'))
+    
+    courses = Course.query.all()
+    return render_template('view_courses.html', courses=courses)
+
+
+@app.route('/admin_portal/add_course', methods=['GET', 'POST'])
+@login_required
+def add_course():
+    if current_user.role != 'admin':
+        return redirect(url_for('login'))
+
+    if request.method == 'POST':
+        course_name = request.form.get('course_name')
+        existing_course = Course.query.filter_by(name=course_name).first()
+
+        if existing_course:
+            flash("Course already exists.", 'danger')
+        else:
+            new_course = Course(name=course_name)
+            db.session.add(new_course)
+            db.session.commit()
+            flash(f"Course '{course_name}' added successfully.", 'success')
+        
+        return redirect(url_for('view_courses'))
+    
+    return render_template('add_course.html')
+
+
+@app.route('/admin_portal/add_subject/<int:course_id>', methods=['GET', 'POST'])
+@login_required
+def add_subject(course_id):
+    if current_user.role != 'admin':
+        return redirect(url_for('login'))
+    
+    course = Course.query.get_or_404(course_id)
+    
+    if request.method == 'POST':
+        subject_name = request.form.get('subject_name')
+        new_subject = Subject(name=subject_name, course_id=course.id)
+        db.session.add(new_subject)
+        db.session.commit()
+        flash(f"Subject '{subject_name}' added to {course.name} successfully.", 'success')
+        return redirect(url_for('view_courses'))
+        
+    return render_template('add_subject.html', course=course)
+
+
 @app.route('/staff_portal')
 @login_required
 def staff_portal():
@@ -108,35 +161,42 @@ def staff_portal():
         return render_template('staff_portal.html', current_user=current_user)
     return redirect(url_for('login'))
 
+
 @app.route('/receptionist_portal')
 @login_required
 def receptionist_portal():
     if current_user.role == 'receptionist':
-        return render_template('receptionist_portal.html', current_user=current_user)
+        enquiries = Enquiry.query.all()
+        return render_template('receptionist_portal.html', current_user=current_user, enquiries=enquiries)
     return redirect(url_for('login'))
+
 
 @app.route('/receptionist_portal/add_enquiry', methods=['GET', 'POST'])
 @login_required
 def add_enquiry():
     if current_user.role != 'receptionist':
         return redirect(url_for('login'))
+    
+    courses = Course.query.all()
 
     if request.method == 'POST':
         name = request.form.get('name')
         contact = request.form.get('contact')
         course = request.form.get('course_interest')
+        joining_date = request.form.get('joining_date')
         
         new_enquiry = Enquiry(
             name=name,
             contact=contact,
-            course_interest=course
+            course_interest=course,
+            joining_date=joining_date
         )
         db.session.add(new_enquiry)
         db.session.commit()
         flash(f"Enquiry for {name} submitted successfully!", 'success')
         return redirect(url_for('receptionist_portal'))
 
-    return render_template('add_enquiry.html')
+    return render_template('add_enquiry.html', courses=courses)
 
 
 @app.route('/logout')
@@ -144,6 +204,7 @@ def add_enquiry():
 def logout():
     logout_user()
     return redirect(url_for('login'))
+
 
 def create_initial_data():
     with app.app_context():
@@ -170,6 +231,3 @@ if __name__ == '__main__':
         db.create_all()
         create_initial_data()
     app.run(debug=True)
-
-
-

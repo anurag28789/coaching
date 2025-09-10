@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Courses{% endblock %}
+
+{% block content %}
+    <h2>Manage Courses and Subjects</h2>
+    <a href="{{ url_for('add_course') }}" class="button">Add New Course</a>
+    
+    <div class="course-list">
+        {% if courses %}
+            <ul>
+                {% for course in courses %}
+                    <li>
+                        {{ course.name }}
+                        <a href="{{ url_for('add_subject', course_id=course.id) }}" class="button">Add Subject</a>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>No courses have been added yet.</p>
+        {% endif %}
+    </div>
+{% endblock %}
