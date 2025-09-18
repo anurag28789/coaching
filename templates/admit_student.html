@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block title %}Admit Student{% endblock %}
+
+{% block content %}
+<div class="max-w-xl mx-auto px-4 py-6">
+    <div class="bg-white shadow-lg rounded-2xl p-6">
+        <h2 class="text-2xl font-bold text-gray-800 mb-4">Admit Student</h2>
+        
+        <form method="POST" action="{{ url_for('admit_student', enquiry_id=enquiry.id) }}">
+            <div class="mb-4">
+                <label for="student_name" class="block text-gray-700 text-sm font-semibold mb-2">Student Name</label>
+                <input type="text" id="student_name" name="student_name" value="{{ enquiry.name }}" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:border-blue-300" required>
+            </div>
+            
+            <div class="mb-4">
+                <label for="father_name" class="block text-gray-700 text-sm font-semibold mb-2">Father's Name</label>
+                <input type="text" id="father_name" name="father_name" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:border-blue-300" required>
+            </div>
+
+            <div class="mb-4">
+                <label for="contact_no" class="block text-gray-700 text-sm font-semibold mb-2">Contact No.</label>
+                <input type="text" id="contact_no" name="contact_no" value="{{ enquiry.contact }}" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:border-blue-300" required>
+            </div>
+            
+            <div class="mb-4">
+                <label for="father_contact_no" class="block text-gray-700 text-sm font-semibold mb-2">Father Contact No.</label>
+                <input type="text" id="father_contact_no" name="father_contact_no" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:border-blue-300">
+            </div>
+
+            <div class="mb-4">
+                <label for="dob" class="block text-gray-700 text-sm font-semibold mb-2">Date of Birth</label>
+                <input type="date" id="dob" name="dob" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:border-blue-300">
+            </div>
+
+            <div class="mb-4">
+                <label for="full_address" class="block text-gray-700 text-sm font-semibold mb-2">Full Address</label>
+                <input type="text" id="full_address" name="full_address" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:border-blue-300">
+            </div>
+
+            <div class="mb-4">
+                <label for="qualification" class="block text-gray-700 text-sm font-semibold mb-2">Qualification</label>
+                <input type="text" id="qualification" name="qualification" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:border-blue-300">
+            </div>
+
+            <div class="mb-4">
+                <label for="exam_type" class="block text-gray-700 text-sm font-semibold mb-2">Exam Type</label>
+                <input type="text" id="exam_type" name="exam_type" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:border-blue-300">
+            </div>
+
+            <div class="mb-4">
+                <label for="target_exam" class="block text-gray-700 text-sm font-semibold mb-2">Target Exam</label>
+                <input type="text" id="target_exam" name="target_exam" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:border-blue-300">
+            </div>
+
+            <div class="mb-4">
+                <label for="course_name" class="block text-gray-700 text-sm font-semibold mb-2">Course of Admission</label>
+                <input type="text" id="course_name" name="course_name" value="{{ enquiry.course_interest }}" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:border-blue-300" readonly>
+            </div>
+
+            <div class="mb-4">
+                <label for="date_of_admission" class="block text-gray-700 text-sm font-semibold mb-2">Date of Admission</label>
+                <input type="date" id="date_of_admission" name="date_of_admission" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:border-blue-300" required>
+            </div>
+
+            <div class="flex space-x-4">
+                <button type="submit" class="w-full bg-green-500 text-white font-bold py-2 px-4 rounded-xl hover:bg-green-600 transition">
+                    Finalize Admission
+                </button>
+                <a href="{{ url_for('receptionist_portal') }}" class="w-full text-center bg-gray-500 text-white font-bold py-2 px-4 rounded-xl hover:bg-gray-600 transition">
+                    Cancel
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

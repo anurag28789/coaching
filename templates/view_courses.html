@@ -5,6 +5,7 @@
 {% block content %}
     <h2>Manage Courses and Subjects</h2>
     <a href="{{ url_for('add_course') }}" class="button">Add New Course</a>
+    <a href="{{ url_for('admin_portal') }}" class="button">Back</a>
     
     <div class="course-list">
         {% if courses %}

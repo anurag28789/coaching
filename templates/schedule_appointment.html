@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}Schedule Appointment{% endblock %}
+
+{% block content %}
+<div class="max-w-xl mx-auto px-4 py-6">
+    <div class="bg-white shadow-lg rounded-2xl p-6">
+        <h2 class="text-2xl font-bold text-gray-800 mb-4">Schedule Appointment</h2>
+        
+        <form method="POST" action="{{ url_for('schedule_appointment') }}">
+            <div class="mb-4">
+                <label for="visitor_name" class="block text-gray-700 text-sm font-semibold mb-2">Visitor Name</label>
+                <input type="text" id="visitor_name" name="visitor_name" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:border-blue-300" required>
+            </div>
+            
+            <div class="mb-4">
+                <label for="visitor_contact" class="block text-gray-700 text-sm font-semibold mb-2">Visitor Contact</label>
+                <input type="text" id="visitor_contact" name="visitor_contact" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:border-blue-300">
+            </div>
+
+            <div class="mb-4">
+                <label for="purpose" class="block text-gray-700 text-sm font-semibold mb-2">Purpose of Meeting</label>
+                <input type="text" id="purpose" name="purpose" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:border-blue-300">
+            </div>
+
+            <div class="mb-4">
+                <label for="date" class="block text-gray-700 text-sm font-semibold mb-2">Date</label>
+                <input type="date" id="date" name="date" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:border-blue-300" required>
+            </div>
+
+            <div class="mb-4">
+                <label for="time" class="block text-gray-700 text-sm font-semibold mb-2">Time</label>
+                <input type="time" id="time" name="time" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:border-blue-300" required>
+            </div>
+
+            <div class="mb-4">
+                <label for="staff_id" class="block text-gray-700 text-sm font-semibold mb-2">Meeting with</label>
+                <select id="staff_id" name="staff_id" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:border-blue-300" required>
+                    <option value="">Select a Staff Member</option>
+                    {% for staff in staff_members %}
+                        <option value="{{ staff.id }}">{{ staff.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="flex space-x-4">
+                <button type="submit" class="w-full bg-blue-500 text-white font-bold py-2 px-4 rounded-xl hover:bg-blue-600 transition">
+                    Schedule Appointment
+                </button>
+                <a href="{{ url_for('receptionist_portal') }}" class="w-full text-center bg-gray-500 text-white font-bold py-2 px-4 rounded-xl hover:bg-gray-600 transition">
+                    Cancel
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
