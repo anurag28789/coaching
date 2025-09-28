@@ -1,7 +1,9 @@
 import site
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
-from models import db, bcrypt, User, Student, Staff, Enquiry, Receptionist, Course, Subject, Appointment
+from models import db, bcrypt, User, Student, Staff, Enquiry, Receptionist, Course, Subject, Appointment, Fee
+from datetime import datetime, timedelta
+import math
 
 # Initialize the Flask application
 app = Flask(__name__)
@@ -53,8 +55,9 @@ def admin_portal():
     if current_user.role == 'admin':
         total_students = Student.query.count()
         total_staff = Staff.query.count()
-        fees_collected = 75000
-        pending_fees = 15000
+        
+        fees_collected = db.session.query(db.func.sum(Fee.amount_paid)).scalar() or 0
+        pending_fees = db.session.query(db.func.sum(Fee.total_amount - Fee.amount_paid)).filter(Fee.status != 'paid').scalar() or 0
 
         return render_template(
             'admin_portal.html',
@@ -232,6 +235,10 @@ def admit_student(enquiry_id):
         target_exam = request.form.get('target_exam')
         course_name = request.form.get('course_name')
         date_of_admission = request.form.get('date_of_admission')
+        total_amount = request.form.get('total_fees')
+        payment_plan = request.form.get('payment_plan')
+        num_installments = request.form.get('num_installments')
+        first_payment_amount = request.form.get('first_payment_amount')
         
         # Check if the enquiry has already been admitted
         if enquiry.status == 'Admitted':
@@ -257,6 +264,21 @@ def admit_student(enquiry_id):
         # Update the enquiry status
         enquiry.status = 'Admitted'
         
+        db.session.commit()
+
+        # Add the new fee record
+        last_paid_date = datetime.now().strftime('%Y-%m-%d')
+        new_fee = Fee(
+            student_id=new_student.id,
+            total_amount=float(total_amount),
+            payment_plan=payment_plan,
+            num_installments=int(num_installments) if num_installments else None,
+            amount_paid=float(first_payment_amount),
+            status='paid' if float(first_payment_amount) >= float(total_amount) else 'partially_paid',
+            last_paid_date=last_paid_date,
+        )
+        db.session.add(new_fee)
+
         db.session.commit()
         flash(f"Student '{student_name}' admitted successfully!", 'success')
         return redirect(url_for('receptionist_portal'))
@@ -284,6 +306,10 @@ def direct_admission():
         target_exam = request.form.get('target_exam')
         course = request.form.get('course_name')
         date_of_admission = request.form.get('date_of_admission')
+        total_amount = request.form.get('total_fees')
+        payment_plan = request.form.get('payment_plan')
+        num_installments = request.form.get('num_installments')
+        first_payment_amount = request.form.get('first_payment_amount')
 
         # Create a new Enquiry record with 'Admitted' status
         new_enquiry = Enquiry(
@@ -313,10 +339,25 @@ def direct_admission():
         db.session.add(new_student)
         db.session.commit()
 
+        # Add the new fee record
+        last_paid_date = datetime.now().strftime('%Y-%m-%d')
+        new_fee = Fee(
+            studentid=new_student.id,
+            total_amount=float(total_amount),
+            payment_plan=payment_plan,
+            num_installments=int(num_installments) if num_installments else None,
+            amount_paid=float(first_payment_amount),
+            status='paid' if float(first_payment_amount) >= float(total_amount) else 'partially_paid',
+            last_paid_date=last_paid_date
+        )
+        db.session.add(new_fee)
+        db.session.commit()
+
         flash(f"Direct admission for {name} was successful!", 'success')
         return redirect(url_for('receptionist_portal'))
 
     return render_template('direct_admission.html', courses=courses)
+
 
 @app.route('/receptionist_portal/schedule_appointment', methods=['GET', 'POST'])
 @login_required
@@ -349,6 +390,99 @@ def schedule_appointment():
         return redirect(url_for('receptionist_portal'))
         
     return render_template('schedule_appointment.html', staff_members=staff_members)
+
+
+@app.route('/receptionist_portal/fees_management')
+@login_required
+def fees_management():
+    if current_user.role != 'receptionist':
+        return redirect(url_for('login'))
+    
+    # Eager load the fees relationship to avoid N+1 queries
+    students = Student.query.options(db.joinedload(Student.fees)).all()
+    
+    return render_template('fees_management.html', students=students)
+
+
+@app.route('/receptionist_portal/record_payment/<int:student_id>', methods=['GET', 'POST'])
+@login_required
+def record_payment(student_id):
+    if current_user.role != 'receptionist':
+        return redirect(url_for('login'))
+
+    fee_record = Fee.query.filter_by(student_id=student_id).first_or_404()
+    student = Student.query.get_or_404(student_id)
+
+    if request.method == 'POST':
+        payment_amount = float(request.form.get('payment_amount'))
+        
+        # Update the amount paid
+        fee_record.amount_paid += payment_amount
+        fee_record.last_paid_date = datetime.now().strftime('%Y-%m-%d')
+
+        # Update the status based on the new amount
+        if fee_record.amount_paid >= fee_record.total_amount:
+            fee_record.status = 'paid'
+        elif fee_record.amount_paid > 0:
+            fee_record.status = 'partially_paid'
+        
+        db.session.commit()
+        flash(f"Payment of ₹{payment_amount} recorded for {student.name}.", 'success')
+        return redirect(url_for('fees_management'))
+
+    return render_template('record_payment.html', fee_record=fee_record, student=student)
+
+
+@app.route('/receptionist_portal/student_profile')
+@app.route('/receptionist_portal/student_profile/<int:student_id>')
+@login_required
+def student_profile(student_id=None):
+    if current_user.role != 'receptionist':
+        return redirect(url_for('login'))
+
+    courses = Course.query.all()
+    
+    if student_id:
+        # View a specific student's profile
+        student = Student.query.get_or_404(student_id)
+        fee_record = Fee.query.filter_by(student_id=student_id).first()
+        
+        next_payment_date = None
+        if fee_record and fee_record.payment_plan == 'installments' and fee_record.last_paid_date:
+            last_paid_date_obj = datetime.strptime(fee_record.last_paid_date, '%Y-%m-%d')
+            months_per_installment = math.ceil(12 / fee_record.num_installments)
+            
+            next_payment_date = (last_paid_date_obj + timedelta(days=months_per_installment * 30)).strftime('%Y-%m-%d')
+
+        return render_template(
+            'student_profile.html',
+            student=student,
+            fee_record=fee_record,
+            show_profile=True,
+            courses=courses,
+            next_payment_date=next_payment_date
+        )
+    else:
+        # Search for students
+        students = []
+        if request.method == 'POST':
+            search_query = request.form.get('search_query')
+            course_filter = request.form.get('course_filter')
+            
+            base_query = Student.query.join(Enquiry).options(db.joinedload(Student.enquiry))
+
+            if search_query:
+                base_query = base_query.filter(Student.name.like(f'%{search_query}%'))
+            
+            if course_filter:
+                base_query = base_query.filter(Enquiry.course_interest == course_filter)
+                
+            students = base_query.all()
+        else:
+            # On initial GET request, display all students
+            students = Student.query.join(Enquiry).options(db.joinedload(Student.enquiry)).all()
+
+        return render_template('student_profile.html', students=students, courses=courses, show_profile=False)
 
 
 @app.route('/logout')

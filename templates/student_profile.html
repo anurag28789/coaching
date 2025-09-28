@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+
+{% block title %}Student Profile{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 py-6">
+    <div class="bg-white shadow-lg rounded-2xl p-6">
+        <h2 class="text-2xl font-bold text-gray-800 mb-4">
+            {% if show_profile %}
+                {{ student.name }}'s Profile
+            {% else %}
+                Student Search
+            {% endif %}
+        </h2>
+        
+        {% if show_profile %}
+        <a href="{{ url_for('student_profile') }}" class="text-blue-600 hover:underline mb-4 inline-block">← Back to Search</a>
+        {% endif %}
+
+        <form method="POST" action="{{ url_for('student_profile') }}" class="flex items-end space-x-4 mb-6">
+            <div class="w-full">
+                <label for="search_query" class="block text-gray-700 text-sm font-semibold mb-2">Search by Name</label>
+                <input type="text" id="search_query" name="search_query" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:border-blue-300">
+            </div>
+            
+            <div class="w-full">
+                <label for="course_filter" class="block text-gray-700 text-sm font-semibold mb-2">Filter by Course</label>
+                <select id="course_filter" name="course_filter" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:border-blue-300">
+                    <option value="">All Courses</option>
+                    {% for course in courses %}
+                        <option value="{{ course.name }}">{{ course.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <button type="submit" class="bg-blue-500 text-white font-bold py-2 px-4 rounded-xl hover:bg-blue-600 transition">
+                Search
+            </button>
+        </form>
+
+        {% if show_profile %}
+        <h3 class="text-xl font-semibold text-gray-800 mt-4">Personal Details</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2 text-gray-700">
+            <div><strong>Father's Name:</strong> {{ student.father_name or 'N/A' }}</div>
+            <div><strong>Contact No.:</strong> {{ student.contact_no or 'N/A' }}</div>
+            <div><strong>Father's Contact No.:</strong> {{ student.father_contact_no or 'N/A' }}</div>
+            <div><strong>Date of Birth:</strong> {{ student.dob or 'N/A' }}</div>
+            <div><strong>Full Address:</strong> {{ student.full_address or 'N/A' }}</div>
+            <div><strong>Qualification:</strong> {{ student.qualification or 'N/A' }}</div>
+            <div><strong>Exam Type:</strong> {{ student.exam_type or 'N/A' }}</div>
+            <div><strong>Target Exam:</strong> {{ student.target_exam or 'N/A' }}</div>
+            <div><strong>Course:</strong> {{ student.enquiry.course_interest or 'N/A' }}</div>
+            <div><strong>Date of Admission:</strong> {{ student.date_of_admission or 'N/A' }}</div>
+        </div>
+
+        <h3 class="text-xl font-semibold text-gray-800 mt-8">Fees Details</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2 text-gray-700">
+            {% if fee_record %}
+                <div><strong>Total Fees:</strong> ₹{{ "{:,.2f}".format(fee_record.total_amount) }}</div>
+                <div><strong>Payment Plan:</strong> {{ fee_record.payment_plan | replace('_', ' ') | capitalize }}</div>
+                <div><strong>Amount Paid:</strong> ₹{{ "{:,.2f}".format(fee_record.amount_paid) }}</div>
+                <div><strong>Pending Amount:</strong> ₹{{ "{:,.2f}".format(fee_record.total_amount - fee_record.amount_paid) }}</div>
+                {% if fee_record.payment_plan == 'installments' %}
+                    <div><strong>Number of Installments:</strong> {{ fee_record.num_installments }}</div>
+                    <div><strong>Next Payment Date:</strong> 
+                        {% if next_payment_date %}
+                            {{ next_payment_date }}
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </div>
+                {% endif %}
+                <div>
+                    <strong>Status:</strong>
+                    <span class="px-2 py-1 rounded-full text-xs font-semibold
+                        {% if fee_record.status == 'paid' %} bg-green-100 text-green-700
+                        {% elif fee_record.status == 'partially_paid' %} bg-yellow-100 text-yellow-700
+                        {% else %} bg-red-100 text-red-700 {% endif %}">
+                        {{ fee_record.status | replace('_', ' ') | capitalize }}
+                    </span>
+                </div>
+            {% else %}
+                <div class="col-span-2 text-gray-500 italic">No fee record found for this student.</div>
+            {% endif %}
+        </div>
+        {% else %}
+        <h3 class="text-xl font-semibold text-gray-800 mt-8">Admitted Students</h3>
+        <div class="mt-4 overflow-x-auto">
+            {% if students %}
+            <table class="min-w-full border border-gray-200 rounded-lg overflow-hidden">
+                <thead class="bg-gray-100 text-gray-700 text-sm">
+                    <tr>
+                        <th class="px-4 py-2 text-left">Student Name</th>
+                        <th class="px-4 py-2 text-left">Contact No.</th>
+                        <th class="px-4 py-2 text-left">Course</th>
+                        <th class="px-4 py-2 text-left">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200 text-sm">
+                    {% for student in students %}
+                    <tr class="hover:bg-gray-50 transition">
+                        <td class="px-4 py-2 font-medium text-gray-800">
+                            <a href="{{ url_for('student_profile', student_id=student.id) }}" class="text-blue-600 hover:underline">
+                                {{ student.name }}
+                            </a>
+                        </td>
+                        <td class="px-4 py-2">{{ student.contact_no }}</td>
+                        <td class="px-4 py-2">{{ student.enquiry.course_interest if student.enquiry else 'N/A' }}</td>
+                        <td class="px-4 py-2">
+                            <a href="{{ url_for('record_payment', student_id=student.id) }}" class="text-green-600 hover:underline">Record Payment</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p class="text-gray-500 italic">No students found.</p>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

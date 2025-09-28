@@ -62,6 +62,31 @@
                 <label for="date_of_admission" class="block text-gray-700 text-sm font-semibold mb-2">Date of Admission</label>
                 <input type="date" id="date_of_admission" name="date_of_admission" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:border-blue-300" required>
             </div>
+            
+            <h3 class="text-xl font-semibold text-gray-800 mt-8 mb-4">Fees Details</h3>
+            <div class="mb-4">
+                <label for="total_fees" class="block text-gray-700 text-sm font-semibold mb-2">Total Fees</label>
+                <input type="number" id="total_fees" name="total_fees" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:border-blue-300" required>
+            </div>
+
+            <div class="mb-4">
+                <label for="payment_plan" class="block text-gray-700 text-sm font-semibold mb-2">Payment Plan</label>
+                <select id="payment_plan" name="payment_plan" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:border-blue-300" required>
+                    <option value="full_payment">Full Payment</option>
+                    <option value="installments">Installments</option>
+                </select>
+            </div>
+
+            <div id="installment-fields">
+                <div class="mb-4">
+                    <label for="num_installments" class="block text-gray-700 text-sm font-semibold mb-2">Number of Installments</label>
+                    <input type="number" id="num_installments" name="num_installments" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:border-blue-300" min="1" value="2">
+                </div>
+                <div class="mb-4">
+                    <label for="first_payment_amount" class="block text-gray-700 text-sm font-semibold mb-2">First Payment Amount</label>
+                    <input type="number" id="first_payment_amount" name="first_payment_amount" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:border-blue-300" required>
+                </div>
+            </div>
 
             <div class="flex space-x-4">
                 <button type="submit" class="w-full bg-green-500 text-white font-bold py-2 px-4 rounded-xl hover:bg-green-600 transition">
@@ -74,4 +99,50 @@
         </form>
     </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const paymentPlanSelect = document.getElementById('payment_plan');
+        const installmentFields = document.getElementById('installment-fields');
+        const totalFeesInput = document.getElementById('total_fees');
+        const numInstallmentsInput = document.getElementById('num_installments');
+        const firstPaymentAmountInput = document.getElementById('first_payment_amount');
+
+        function toggleInstallmentFields() {
+            if (paymentPlanSelect.value === 'installments') {
+                installmentFields.style.display = 'block';
+                numInstallmentsInput.setAttribute('required', 'required');
+                firstPaymentAmountInput.setAttribute('required', 'required');
+            } else {
+                installmentFields.style.display = 'none';
+                numInstallmentsInput.removeAttribute('required');
+                firstPaymentAmountInput.removeAttribute('required');
+            }
+            updateFirstPaymentAmount();
+        }
+
+        function updateFirstPaymentAmount() {
+            const totalFees = parseFloat(totalFeesInput.value) || 0;
+            const numInstallments = parseInt(numInstallmentsInput.value) || 1;
+            
+            if (paymentPlanSelect.value === 'full_payment') {
+                firstPaymentAmountInput.value = totalFees;
+                firstPaymentAmountInput.setAttribute('readonly', 'readonly');
+            } else if (totalFees > 0 && numInstallments > 0) {
+                const suggestedAmount = totalFees / numInstallments;
+                firstPaymentAmountInput.value = suggestedAmount.toFixed(2);
+                firstPaymentAmountInput.removeAttribute('readonly');
+            } else {
+                firstPaymentAmountInput.value = '';
+                firstPaymentAmountInput.removeAttribute('readonly');
+            }
+        }
+
+        paymentPlanSelect.addEventListener('change', toggleInstallmentFields);
+        totalFeesInput.addEventListener('input', updateFirstPaymentAmount);
+        numInstallmentsInput.addEventListener('input', updateFirstPaymentAmount);
+
+        toggleInstallmentFields();
+    });
+</script>
 {% endblock %}

@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}Record Payment{% endblock %}
+
+{% block content %}
+<div class="max-w-xl mx-auto px-4 py-6">
+    <div class="bg-white shadow-lg rounded-2xl p-6">
+        <h2 class="text-2xl font-bold text-gray-800 mb-4">Record Payment for {{ student.name }}</h2>
+        <p class="text-gray-500">Total Fees: ₹{{ "{:,.2f}".format(fee_record.total_amount) }}</p>
+        <p class="text-gray-500">Amount Paid: ₹{{ "{:,.2f}".format(fee_record.amount_paid) }}</p>
+        <p class="text-gray-500 font-semibold mb-4">Pending: ₹{{ "{:,.2f}".format(fee_record.total_amount - fee_record.amount_paid) }}</p>
+
+        <form method="POST" action="{{ url_for('record_payment', student_id=student.id) }}">
+            <div class="mb-4">
+                <label for="payment_amount" class="block text-gray-700 text-sm font-semibold mb-2">Payment Amount</label>
+                <input type="number" id="payment_amount" name="payment_amount" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:border-blue-300" required step="0.01">
+            </div>
+
+            <div class="flex space-x-4">
+                <button type="submit" class="w-full bg-green-500 text-white font-bold py-2 px-4 rounded-xl hover:bg-green-600 transition">
+                    Submit Payment
+                </button>
+                <a href="{{ url_for('fees_management') }}" class="w-full text-center bg-gray-500 text-white font-bold py-2 px-4 rounded-xl hover:bg-gray-600 transition">
+                    Cancel
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

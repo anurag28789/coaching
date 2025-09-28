@@ -40,6 +40,7 @@ class Student(db.Model):
     full_address = db.Column(db.String(200), nullable=True)
     exam_type = db.Column(db.String(100), nullable=True)
     target_exam = db.Column(db.String(100), nullable=True)
+    fees = db.relationship('Fee', backref='student', lazy=True, cascade='all, delete-orphan')
 
 
 # --- Staff Model ---
@@ -83,3 +84,14 @@ class Appointment(db.Model):
     date = db.Column(db.String(20), nullable=False)
     time = db.Column(db.String(20), nullable=False)
     staff_id = db.Column(db.Integer, db.ForeignKey('staff.id'), nullable=False)
+
+# --- Fee Model ---
+class Fee(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    studentid = db.Column(db.Integer, db.ForeignKey('student.id'), nullable=False)
+    totalamount = db.Column(db.Float, nullable=False)
+    paymentplan = db.Column(db.String(50), nullable=False)
+    numinstallments = db.Column(db.Integer, nullable=True)  # <------ This is new
+    amountpaid = db.Column(db.Float, nullable=False, default=0.0)
+    status = db.Column(db.String(50), nullable=False, default='pending')
+    lastpaiddate = db.Column(db.String(20), nullable=True)
