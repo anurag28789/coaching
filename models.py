@@ -95,12 +95,10 @@ class Fee(db.Model):
     status = db.Column(db.String(50), nullable=False, default='pending')
     payments = db.relationship('Payment', backref='fee', lazy=True, cascade='all, delete-orphan')
 
-    # This property calculates the total paid amount on the fly
     @property
     def amount_paid(self):
         return sum(payment.amount for payment in self.payments)
 
-    # This property calculates the pending amount on the fly
     @property
     def pending_amount(self):
         return self.total_amount - self.amount_paid

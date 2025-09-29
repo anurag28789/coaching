@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block title %}Institutional Settings{% endblock %}
+
+{% block content %}
+<div class="max-w-xl mx-auto px-4 py-6">
+    <div class="bg-white shadow-lg rounded-2xl p-6">
+        <h2 class="text-2xl font-bold text-gray-800 mb-4">Institutional Settings</h2>
+        <a href="{{ url_for('admin_portal') }}" class="text-blue-600 hover:underline mb-4 inline-block">← Back to Dashboard</a>
+
+        <form method="POST">
+            <div class="mb-4">
+                <label for="global_discount_percentage" class="block text-gray-700 text-sm font-semibold mb-2">Global Discount Percentage (%)</label>
+                <input type="number" id="global_discount_percentage" name="global_discount_percentage" value="{{ settings['global_discount_percentage'] }}" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:border-blue-300" min="0" max="100" step="0.01">
+            </div>
+            <button type="submit" class="w-full bg-blue-500 text-white font-bold py-2 px-4 rounded-xl hover:bg-blue-600 transition">
+                Save Settings
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}
