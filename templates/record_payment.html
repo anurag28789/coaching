@@ -8,7 +8,7 @@
         <h2 class="text-2xl font-bold text-gray-800 mb-4">Record Payment for {{ student.name }}</h2>
         <p class="text-gray-500">Total Fees: ₹{{ "{:,.2f}".format(fee_record.total_amount) }}</p>
         <p class="text-gray-500">Amount Paid: ₹{{ "{:,.2f}".format(fee_record.amount_paid) }}</p>
-        <p class="text-gray-500 font-semibold mb-4">Pending: ₹{{ "{:,.2f}".format(fee_record.total_amount - fee_record.amount_paid) }}</p>
+        <p class="text-gray-500 font-semibold mb-4">Pending: ₹{{ "{:,.2f}".format(fee_record.pending_amount) }}</p>
 
         <form method="POST" action="{{ url_for('record_payment', student_id=student.id) }}">
             <div class="mb-4">

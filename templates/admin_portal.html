@@ -18,16 +18,17 @@
             </div>
             <div class="kpi-card">
                 <h3>Fees Collected</h3>
-                <p class="kpi-value">₹ {{ fees_collected }}</p>
+                <p class="kpi-value">₹ {{ "{:,.2f}".format(fees_collected) }}</p>
             </div>
             <div class="kpi-card">
                 <h3>Pending Fees</h3>
-                <p class="kpi-value">₹ {{ pending_fees }}</p>
+                <p class="kpi-value">₹ {{ "{:,.2f}".format(pending_fees) }}</p>
             </div>
         </div>
         
         <div class="action-buttons">
             <a href="{{ url_for('add_user') }}" class="button">Add New User</a>
+            <a href="{{ url_for('manage_users') }}" class="button">Manage Users</a>
             <a href="{{ url_for('view_courses') }}" class="button">Manage Courses</a>
         </div>
     </div>

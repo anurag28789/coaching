@@ -88,10 +88,27 @@ class Appointment(db.Model):
 # --- Fee Model ---
 class Fee(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    studentid = db.Column(db.Integer, db.ForeignKey('student.id'), nullable=False)
-    totalamount = db.Column(db.Float, nullable=False)
-    paymentplan = db.Column(db.String(50), nullable=False)
-    numinstallments = db.Column(db.Integer, nullable=True)  # <------ This is new
-    amountpaid = db.Column(db.Float, nullable=False, default=0.0)
+    student_id = db.Column(db.Integer, db.ForeignKey('student.id'), nullable=False)
+    total_amount = db.Column(db.Float, nullable=False)
+    payment_plan = db.Column(db.String(50), nullable=False)
+    num_installments = db.Column(db.Integer, nullable=True)
     status = db.Column(db.String(50), nullable=False, default='pending')
-    lastpaiddate = db.Column(db.String(20), nullable=True)
+    payments = db.relationship('Payment', backref='fee', lazy=True, cascade='all, delete-orphan')
+
+    # This property calculates the total paid amount on the fly
+    @property
+    def amount_paid(self):
+        return sum(payment.amount for payment in self.payments)
+
+    # This property calculates the pending amount on the fly
+    @property
+    def pending_amount(self):
+        return self.total_amount - self.amount_paid
+    
+# --- Payment Model for Transaction History ---
+class Payment(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    fee_id = db.Column(db.Integer, db.ForeignKey('fee.id'), nullable=False)
+    amount = db.Column(db.Float, nullable=False)
+    payment_date = db.Column(db.String(20), nullable=False)
+    notes = db.Column(db.String(200), nullable=True)

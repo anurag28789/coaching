@@ -59,7 +59,7 @@
                 <div><strong>Total Fees:</strong> ₹{{ "{:,.2f}".format(fee_record.total_amount) }}</div>
                 <div><strong>Payment Plan:</strong> {{ fee_record.payment_plan | replace('_', ' ') | capitalize }}</div>
                 <div><strong>Amount Paid:</strong> ₹{{ "{:,.2f}".format(fee_record.amount_paid) }}</div>
-                <div><strong>Pending Amount:</strong> ₹{{ "{:,.2f}".format(fee_record.total_amount - fee_record.amount_paid) }}</div>
+                <div><strong>Pending Amount:</strong> ₹{{ "{:,.2f}".format(fee_record.pending_amount) }}</div>
                 {% if fee_record.payment_plan == 'installments' %}
                     <div><strong>Number of Installments:</strong> {{ fee_record.num_installments }}</div>
                     <div><strong>Next Payment Date:</strong> 

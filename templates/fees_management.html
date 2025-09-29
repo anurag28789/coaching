@@ -31,7 +31,7 @@
                         <td class="px-4 py-2">{{ student.enquiry.course_interest if student.enquiry else 'N/A' }}</td>
                         <td class="px-4 py-2">₹{{ "{:,.2f}".format(student.fees[0].total_amount) if student.fees else 'N/A' }}</td>
                         <td class="px-4 py-2">₹{{ "{:,.2f}".format(student.fees[0].amount_paid) if student.fees else 'N/A' }}</td>
-                        <td class="px-4 py-2">₹{{ "{:,.2f}".format(student.fees[0].total_amount - student.fees[0].amount_paid) if student.fees else 'N/A' }}</td>
+                        <td class="px-4 py-2">₹{{ "{:,.2f}".format(student.fees[0].pending_amount) if student.fees else 'N/A' }}</td>
                         <td class="px-4 py-2">
                             <span class="px-2 py-1 rounded-full text-xs font-semibold
                                 {% if student.fees[0].status == 'paid' %} bg-green-100 text-green-700

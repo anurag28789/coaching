@@ -1,7 +1,7 @@
 import site
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
-from models import db, bcrypt, User, Student, Staff, Enquiry, Receptionist, Course, Subject, Appointment, Fee
+from models import db, bcrypt, User, Student, Staff, Enquiry, Receptionist, Course, Subject, Appointment, Fee, Payment
 from datetime import datetime, timedelta
 import math
 
@@ -56,8 +56,9 @@ def admin_portal():
         total_students = Student.query.count()
         total_staff = Staff.query.count()
         
-        fees_collected = db.session.query(db.func.sum(Fee.amount_paid)).scalar() or 0
-        pending_fees = db.session.query(db.func.sum(Fee.total_amount - Fee.amount_paid)).filter(Fee.status != 'paid').scalar() or 0
+        # Updated to use the new properties of the Fee model
+        fees_collected = db.session.query(db.func.sum(Payment.amount)).scalar() or 0
+        pending_fees = db.session.query(db.func.sum(Fee.total_amount) - db.func.sum(Payment.amount)).filter(Fee.status != 'paid').scalar() or 0
 
         return render_template(
             'admin_portal.html',
@@ -156,6 +157,40 @@ def add_subject(course_id):
         
     return render_template('add_subject.html', course=course)
 
+@app.route('/admin_portal/manage_users')
+@login_required
+def manage_users():
+    if current_user.role != 'admin':
+        return redirect(url_for('login'))
+    
+    users = User.query.all()
+    return render_template('manage_users.html', users=users)
+
+
+@app.route('/admin_portal/delete_user/<int:user_id>', methods=['POST'])
+@login_required
+def delete_user(user_id):
+    if current_user.role != 'admin':
+        return redirect(url_for('login'))
+        
+    user_to_delete = User.query.get_or_404(user_id)
+
+    # Prevent admin from deleting their own account or another admin account
+    if user_to_delete.role == 'admin':
+        flash("Cannot delete an admin account.", 'danger')
+        return redirect(url_for('manage_users'))
+
+    # If the user has an associated staff or receptionist profile, delete it first
+    if user_to_delete.role == 'staff' and user_to_delete.staff_profile:
+        db.session.delete(user_to_delete.staff_profile)
+    elif user_to_delete.role == 'receptionist' and user_to_delete.receptionist_profile:
+        db.session.delete(user_to_delete.receptionist_profile)
+
+    db.session.delete(user_to_delete)
+    db.session.commit()
+    flash(f"User '{user_to_delete.username}' and associated profile deleted successfully.", 'success')
+    return redirect(url_for('manage_users'))
+
 
 @app.route('/staff_portal')
 @login_required
@@ -235,7 +270,7 @@ def admit_student(enquiry_id):
         target_exam = request.form.get('target_exam')
         course_name = request.form.get('course_name')
         date_of_admission = request.form.get('date_of_admission')
-        total_amount = request.form.get('total_fees')
+        total_fees = request.form.get('total_fees')
         payment_plan = request.form.get('payment_plan')
         num_installments = request.form.get('num_installments')
         first_payment_amount = request.form.get('first_payment_amount')
@@ -266,18 +301,35 @@ def admit_student(enquiry_id):
         
         db.session.commit()
 
+        # --- Updated Logic for Payment Recording ---
         # Add the new fee record
-        last_paid_date = datetime.now().strftime('%Y-%m-%d')
         new_fee = Fee(
             student_id=new_student.id,
-            total_amount=float(total_amount),
+            total_amount=float(total_fees),
             payment_plan=payment_plan,
             num_installments=int(num_installments) if num_installments else None,
-            amount_paid=float(first_payment_amount),
-            status='paid' if float(first_payment_amount) >= float(total_amount) else 'partially_paid',
-            last_paid_date=last_paid_date,
+            status='pending'  # Initial status
         )
         db.session.add(new_fee)
+        db.session.commit() # Commit to get the new_fee.id
+
+        # Create the first Payment record
+        if float(first_payment_amount) > 0:
+            first_payment = Payment(
+                fee_id=new_fee.id,
+                amount=float(first_payment_amount),
+                payment_date=datetime.now().strftime('%Y-%m-%d')
+            )
+            db.session.add(first_payment)
+
+        # Update the fee status based on the first payment
+        if new_fee.amount_paid >= new_fee.total_amount:
+            new_fee.status = 'paid'
+        elif new_fee.amount_paid > 0:
+            new_fee.status = 'partially_paid'
+        else:
+            new_fee.status = 'pending'
+        # --- End of Updated Logic ---
 
         db.session.commit()
         flash(f"Student '{student_name}' admitted successfully!", 'success')
@@ -306,7 +358,7 @@ def direct_admission():
         target_exam = request.form.get('target_exam')
         course = request.form.get('course_name')
         date_of_admission = request.form.get('date_of_admission')
-        total_amount = request.form.get('total_fees')
+        total_fees = request.form.get('total_fees')
         payment_plan = request.form.get('payment_plan')
         num_installments = request.form.get('num_installments')
         first_payment_amount = request.form.get('first_payment_amount')
@@ -339,20 +391,35 @@ def direct_admission():
         db.session.add(new_student)
         db.session.commit()
 
-        # Add the new fee record
-        last_paid_date = datetime.now().strftime('%Y-%m-%d')
+        # --- Updated Logic for Payment Recording ---
         new_fee = Fee(
-            studentid=new_student.id,
-            total_amount=float(total_amount),
+            student_id=new_student.id,
+            total_amount=float(total_fees),
             payment_plan=payment_plan,
             num_installments=int(num_installments) if num_installments else None,
-            amount_paid=float(first_payment_amount),
-            status='paid' if float(first_payment_amount) >= float(total_amount) else 'partially_paid',
-            last_paid_date=last_paid_date
+            status='pending'
         )
         db.session.add(new_fee)
         db.session.commit()
 
+        if float(first_payment_amount) > 0:
+            first_payment = Payment(
+                fee_id=new_fee.id,
+                amount=float(first_payment_amount),
+                payment_date=datetime.now().strftime('%Y-%m-%d')
+            )
+            db.session.add(first_payment)
+
+        # Update the fee status based on the first payment
+        if new_fee.amount_paid >= new_fee.total_amount:
+            new_fee.status = 'paid'
+        elif new_fee.amount_paid > 0:
+            new_fee.status = 'partially_paid'
+        else:
+            new_fee.status = 'pending'
+        # --- End of Updated Logic ---
+
+        db.session.commit()
         flash(f"Direct admission for {name} was successful!", 'success')
         return redirect(url_for('receptionist_portal'))
 
@@ -410,17 +477,28 @@ def record_payment(student_id):
     if current_user.role != 'receptionist':
         return redirect(url_for('login'))
 
+    # Find the Fee record associated with the student
+    # Note: Assumes one fee record per student for simplicity
     fee_record = Fee.query.filter_by(student_id=student_id).first_or_404()
     student = Student.query.get_or_404(student_id)
+    
+    # Calculate pending amount for display
+    pending_amount = fee_record.total_amount - fee_record.amount_paid
 
     if request.method == 'POST':
         payment_amount = float(request.form.get('payment_amount'))
         
-        # Update the amount paid
-        fee_record.amount_paid += payment_amount
-        fee_record.last_paid_date = datetime.now().strftime('%Y-%m-%d')
+        # --- Updated Logic for Payment Recording ---
+        # Create a new Payment record
+        new_payment = Payment(
+            fee_id=fee_record.id,
+            amount=payment_amount,
+            payment_date=datetime.now().strftime('%Y-%m-%d')
+        )
+        db.session.add(new_payment)
+        db.session.commit() # Commit to ensure the amount_paid property is up-to-date
 
-        # Update the status based on the new amount
+        # Update the status based on the new total amount paid
         if fee_record.amount_paid >= fee_record.total_amount:
             fee_record.status = 'paid'
         elif fee_record.amount_paid > 0:
@@ -428,9 +506,11 @@ def record_payment(student_id):
         
         db.session.commit()
         flash(f"Payment of ₹{payment_amount} recorded for {student.name}.", 'success')
+        # --- End of Updated Logic ---
+        
         return redirect(url_for('fees_management'))
 
-    return render_template('record_payment.html', fee_record=fee_record, student=student)
+    return render_template('record_payment.html', fee_record=fee_record, student=student, pending_amount=pending_amount)
 
 
 @app.route('/receptionist_portal/student_profile')
@@ -448,8 +528,9 @@ def student_profile(student_id=None):
         fee_record = Fee.query.filter_by(student_id=student_id).first()
         
         next_payment_date = None
-        if fee_record and fee_record.payment_plan == 'installments' and fee_record.last_paid_date:
-            last_paid_date_obj = datetime.strptime(fee_record.last_paid_date, '%Y-%m-%d')
+        if fee_record and fee_record.payment_plan == 'installments' and fee_record.payments:
+            last_payment_date = max(p.payment_date for p in fee_record.payments)
+            last_paid_date_obj = datetime.strptime(last_payment_date, '%Y-%m-%d')
             months_per_installment = math.ceil(12 / fee_record.num_installments)
             
             next_payment_date = (last_paid_date_obj + timedelta(days=months_per_installment * 30)).strftime('%Y-%m-%d')
