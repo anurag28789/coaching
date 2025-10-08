@@ -3,36 +3,55 @@
 {% block title %}Admin Portal{% endblock %}
 
 {% block content %}
-    <div class="admin-dashboard">
-        <h2>Welcome to the Admin Dashboard</h2>
-        <p>Hello, {{ current_user.username }}. Here's a summary of your coaching institution.</p>
+<div class="max-w-6xl mx-auto px-4 py-6">
+    <div class="bg-white shadow-lg rounded-2xl p-6">
+        <h2 class="text-2xl font-bold text-gray-800">
+            Welcome to the Admin Dashboard
+        </h2>
+        <p class="text-gray-500 mt-1">
+            Hello, {{ current_user.username }}. Here's a summary of your coaching institution.
+        </p>
 
-        <div class="kpi-container">
-            <div class="kpi-card">
-                <h3>Total Students</h3>
-                <p class="kpi-value">{{ total_students }}</p>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-8">
+            <div class="bg-gray-100 p-6 rounded-xl shadow">
+                <h3 class="text-md font-semibold text-gray-700">Total Students</h3>
+                <p class="text-3xl font-bold text-gray-800 mt-2">{{ total_students }}</p>
             </div>
-            <div class="kpi-card">
-                <h3>Total Staff</h3>
-                <p class="kpi-value">{{ total_staff }}</p>
+            <div class="bg-gray-100 p-6 rounded-xl shadow">
+                <h3 class="text-md font-semibold text-gray-700">Total Staff</h3>
+                <p class="text-3xl font-bold text-gray-800 mt-2">{{ total_staff }}</p>
             </div>
-            <div class="kpi-card">
-                <h3>Fees Collected</h3>
-                <p class="kpi-value">₹ {{ "{:,.2f}".format(fees_collected) }}</p>
+            <div class="bg-gray-100 p-6 rounded-xl shadow">
+                <h3 class="text-md font-semibold text-gray-700">Fees Collected</h3>
+                <p class="text-3xl font-bold text-gray-800 mt-2">₹ {{ "{:,.2f}".format(fees_collected) }}</p>
             </div>
-            <div class="kpi-card">
-                <h3>Pending Fees</h3>
-                <p class="kpi-value">₹ {{ "{:,.2f}".format(pending_fees) }}</p>
+            <div class="bg-gray-100 p-6 rounded-xl shadow">
+                <h3 class="text-md font-semibold text-gray-700">Pending Fees</h3>
+                <p class="text-3xl font-bold text-gray-800 mt-2">₹ {{ "{:,.2f}".format(pending_fees) }}</p>
             </div>
         </div>
         
-        <div class="action-buttons">
-            <a href="{{ url_for('add_user') }}" class="button">Add New User</a>
-            <a href="{{ url_for('manage_users') }}" class="button">Manage Users</a>
-            <a href="{{ url_for('manage_students') }}" class="button">Manage Students</a>
-            <a href="{{ url_for('view_courses') }}" class="button">Manage Courses</a>
-            <a href="{{ url_for('financial_reports') }}" class="button">Financial Reports</a>
-            <a href="{{ url_for('institutional_settings') }}" class="button">Settings</a>
+        <h3 class="text-xl font-semibold text-gray-800 mt-8 mb-4">Quick Actions</h3>
+        <div class="flex items-center gap-4 flex-wrap">
+            <a href="{{ url_for('add_user') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-xl shadow hover:bg-blue-700 transition">
+                Add New User
+            </a>
+            <a href="{{ url_for('manage_users') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-xl shadow hover:bg-blue-700 transition">
+                Manage Users
+            </a>
+            <a href="{{ url_for('manage_students') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-xl shadow hover:bg-blue-700 transition">
+                Manage Students
+            </a>
+            <a href="{{ url_for('view_courses') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-xl shadow hover:bg-blue-700 transition">
+                Manage Courses
+            </a>
+            <a href="{{ url_for('financial_reports') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-xl shadow hover:bg-blue-700 transition">
+                Financial Reports
+            </a>
+            <a href="{{ url_for('institutional_settings') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-xl shadow hover:bg-blue-700 transition">
+                Settings
+            </a>
         </div>
     </div>
+</div>
 {% endblock %}
