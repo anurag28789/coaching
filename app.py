@@ -1,7 +1,7 @@
 import site
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
-from models import db, bcrypt, User, Student, Staff, Enquiry, Receptionist, Course, Subject, Appointment, Fee, Payment
+from models import db, bcrypt, User, Student, Staff, Enquiry, Receptionist, Course, Subject, Appointment, Fee, Payment, AuditLog
 from datetime import datetime, timedelta
 import math
 
@@ -32,6 +32,14 @@ def load_user(user_id):
 
 # --- Auditing Function ---
 def log_action(user, action, details):
+    new_log = AuditLog(
+        user_id=user.id,
+        action=action,
+        details=details,
+        timestamp=datetime.now()
+    )
+    db.session.add(new_log)
+    db.session.commit()
     print(f"AUDIT: User '{user.username}' ({user.role}) performed '{action}' - {details}")
 
 # --- Routes ---
@@ -46,7 +54,7 @@ def login():
         password = request.form.get('password')
 
         user = User.query.filter_by(username=username).first()
-        if user and user.check_password(password):
+        if user and user.is_active and user.check_password(password):
             login_user(user)
             log_action(user, 'login', f"Successful login.")
             if user.role == 'admin':
@@ -84,14 +92,28 @@ def admin_portal():
         )
     return redirect(url_for('login'))
 
-@app.route('/admin_portal/manage_users')
+@app.route('/admin_portal/manage_users', methods=['GET', 'POST'])
 @login_required
 def manage_users():
     if current_user.role != 'admin':
         return redirect(url_for('login'))
-    
-    users = User.query.all()
-    return render_template('manage_users.html', users=users)
+
+    query = User.query.join(Staff, isouter=True).join(Receptionist, isouter=True)
+    search_query = request.form.get('search_query')
+    role_filter = request.form.get('role_filter')
+
+    if request.method == 'POST':
+        if search_query:
+            query = query.filter(db.or_(
+                User.username.like(f'%{search_query}%'),
+                Staff.name.like(f'%{search_query}%'),
+                Receptionist.name.like(f'%{search_query}%')
+            ))
+        if role_filter and role_filter != 'All':
+            query = query.filter(User.role == role_filter)
+
+    users = query.all()
+    return render_template('manage_users.html', users=users, search_query=search_query, role_filter=role_filter)
 
 @app.route('/admin_portal/add_user', methods=['GET', 'POST'])
 @login_required
@@ -111,7 +133,7 @@ def add_user():
             return redirect(url_for('add_user'))
 
         hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
-        new_user = User(username=username, password_hash=hashed_password, role=role)
+        new_user = User(username=username, password_hash=hashed_password, role=role, is_active=True)
         db.session.add(new_user)
         db.session.commit()
 
@@ -144,6 +166,7 @@ def edit_user(user_id):
         new_username = request.form.get('username')
         new_password = request.form.get('password')
         new_role = request.form.get('role')
+        name = request.form.get('name')
 
         # Check if the new username already exists with another user
         existing_user = User.query.filter(User.username == new_username, User.id != user_id).first()
@@ -156,9 +179,9 @@ def edit_user(user_id):
         
         # Update associated profile name
         if user_to_edit.staff_profile:
-            user_to_edit.staff_profile.name = request.form.get('name')
+            user_to_edit.staff_profile.name = name
         elif user_to_edit.receptionist_profile:
-            user_to_edit.receptionist_profile.name = request.form.get('name')
+            user_to_edit.receptionist_profile.name = name
         
         if new_password:
             user_to_edit.set_password(new_password)
@@ -197,14 +220,44 @@ def delete_user(user_id):
     flash(f"User '{user_to_delete.username}' and associated profile deleted successfully.", 'success')
     return redirect(url_for('manage_users'))
 
-@app.route('/admin_portal/manage_students')
+@app.route('/admin_portal/toggle_active/<int:user_id>', methods=['POST'])
+@login_required
+def toggle_active(user_id):
+    if current_user.role != 'admin':
+        return redirect(url_for('login'))
+
+    user_to_toggle = db.session.get(User, user_id)
+    if user_to_toggle is None:
+        flash("User not found.", 'danger')
+    elif user_to_toggle.role == 'admin':
+        flash("Cannot deactivate an admin account.", 'danger')
+    else:
+        user_to_toggle.is_active = not user_to_toggle.is_active
+        db.session.commit()
+        status = 'deactivated' if not user_to_toggle.is_active else 'activated'
+        log_action(current_user, 'toggle_active', f"{user_to_toggle.username} {status}.")
+        flash(f"User '{user_to_toggle.username}' has been {status}.", 'success')
+    return redirect(url_for('manage_users'))
+
+@app.route('/admin_portal/manage_students', methods=['GET', 'POST'])
 @login_required
 def manage_students():
     if current_user.role != 'admin':
         return redirect(url_for('login'))
     
-    students = Student.query.all()
-    return render_template('manage_students.html', students=students)
+    query = Student.query.join(Enquiry)
+    search_query = request.form.get('search_query')
+    course_filter = request.form.get('course_filter')
+    
+    if request.method == 'POST':
+        if search_query:
+            query = query.filter(Student.name.like(f'%{search_query}%'))
+        if course_filter and course_filter != 'All':
+            query = query.filter(Enquiry.course_interest == course_filter)
+            
+    students = query.all()
+    courses = Course.query.all()
+    return render_template('manage_students.html', students=students, courses=courses)
 
 @app.route('/admin_portal/edit_student/<int:student_id>', methods=['GET', 'POST'])
 @login_required
@@ -298,6 +351,47 @@ def add_course():
     
     return render_template('add_course.html')
 
+@app.route('/admin_portal/edit_course/<int:course_id>', methods=['GET', 'POST'])
+@login_required
+def edit_course(course_id):
+    if current_user.role != 'admin':
+        return redirect(url_for('login'))
+
+    course = db.session.get(Course, course_id)
+    if course is None:
+        flash("Course not found.", 'danger')
+        return redirect(url_for('view_courses'))
+    
+    if request.method == 'POST':
+        new_name = request.form.get('course_name')
+        if new_name:
+            course.name = new_name
+            db.session.commit()
+            log_action(current_user, 'edit_course', f"Edited course ID {course_id} to '{new_name}'.")
+            flash("Course updated successfully.", 'success')
+            return redirect(url_for('view_courses'))
+        else:
+            flash("Course name cannot be empty.", 'danger')
+
+    return render_template('edit_course.html', course=course)
+
+@app.route('/admin_portal/delete_course/<int:course_id>', methods=['POST'])
+@login_required
+def delete_course(course_id):
+    if current_user.role != 'admin':
+        return redirect(url_for('login'))
+
+    course_to_delete = db.session.get(Course, course_id)
+    if course_to_delete:
+        log_action(current_user, 'delete_course', f"Deleted course '{course_to_delete.name}'.")
+        db.session.delete(course_to_delete)
+        db.session.commit()
+        flash("Course and all associated subjects deleted successfully.", 'success')
+    else:
+        flash("Course not found.", 'danger')
+
+    return redirect(url_for('view_courses'))
+
 
 @app.route('/admin_portal/add_subject/<int:course_id>', methods=['GET', 'POST'])
 @login_required
@@ -321,6 +415,65 @@ def add_subject(course_id):
         
     return render_template('add_subject.html', course=course)
 
+@app.route('/admin_portal/edit_subject/<int:subject_id>', methods=['GET', 'POST'])
+@login_required
+def edit_subject(subject_id):
+    if current_user.role != 'admin':
+        return redirect(url_for('login'))
+
+    subject = db.session.get(Subject, subject_id)
+    if subject is None:
+        flash("Subject not found.", 'danger')
+        return redirect(url_for('view_courses'))
+    
+    if request.method == 'POST':
+        new_name = request.form.get('subject_name')
+        if new_name:
+            subject.name = new_name
+            db.session.commit()
+            log_action(current_user, 'edit_subject', f"Edited subject ID {subject_id} to '{new_name}'.")
+            flash("Subject updated successfully.", 'success')
+            return redirect(url_for('view_courses'))
+        else:
+            flash("Subject name cannot be empty.", 'danger')
+
+    return render_template('edit_subject.html', subject=subject)
+
+@app.route('/admin_portal/delete_subject/<int:subject_id>', methods=['POST'])
+@login_required
+def delete_subject(subject_id):
+    if current_user.role != 'admin':
+        return redirect(url_for('login'))
+    
+    subject_to_delete = db.session.get(Subject, subject_id)
+    if subject_to_delete:
+        log_action(current_user, 'delete_subject', f"Deleted subject '{subject_to_delete.name}'.")
+        db.session.delete(subject_to_delete)
+        db.session.commit()
+        flash("Subject deleted successfully.", 'success')
+    else:
+        flash("Subject not found.", 'danger')
+        
+    return redirect(url_for('view_courses'))
+
+
+@app.route('/admin_portal/audit_logs')
+@login_required
+def audit_logs():
+    if current_user.role != 'admin':
+        return redirect(url_for('login'))
+    
+    logs = AuditLog.query.order_by(AuditLog.timestamp.desc()).limit(100).all()
+    return render_template('audit_logs.html', logs=logs)
+
+@app.route('/admin_portal/manage_appointments')
+@login_required
+def manage_appointments():
+    if current_user.role != 'admin':
+        return redirect(url_for('login'))
+    
+    appointments = Appointment.query.join(Staff).options(db.joinedload(Appointment.staff)).order_by(Appointment.date.desc(), Appointment.time.desc()).all()
+    return render_template('manage_appointments.html', appointments=appointments)
 
 @app.route('/staff_portal')
 @login_required

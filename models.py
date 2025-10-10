@@ -1,6 +1,7 @@
 from flask_login import UserMixin
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
+from datetime import datetime
 
 db = SQLAlchemy()
 bcrypt = Bcrypt()
@@ -11,6 +12,7 @@ class User(db.Model, UserMixin):
     username = db.Column(db.String(20), unique=True, nullable=False)
     password_hash = db.Column(db.String(60), nullable=False)
     role = db.Column(db.String(20), nullable=False)
+    is_active = db.Column(db.Boolean, nullable=False, default=True)
     staff_profile = db.relationship('Staff', backref='user', uselist=False)
     receptionist_profile = db.relationship('Receptionist', backref='user', uselist=False)
 
@@ -22,6 +24,9 @@ class User(db.Model, UserMixin):
 
     def check_password(self, password):
         return bcrypt.check_password_hash(self.password_hash, password)
+
+    def is_active(self):
+        return self.is_active
 
 # --- Student Model ---
 class Student(db.Model):
@@ -68,7 +73,7 @@ class Enquiry(db.Model):
 class Course(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), unique=True, nullable=False)
-    subjects = db.relationship('Subject', backref='course', lazy=True)
+    subjects = db.relationship('Subject', backref='course', lazy=True, cascade='all, delete-orphan')
 
 # --- Subject Model ---
 class Subject(db.Model):
@@ -84,6 +89,7 @@ class Appointment(db.Model):
     date = db.Column(db.String(20), nullable=False)
     time = db.Column(db.String(20), nullable=False)
     staff_id = db.Column(db.Integer, db.ForeignKey('staff.id'), nullable=False)
+    staff = db.relationship('Staff', backref='appointments')
 
 # --- Fee Model ---
 class Fee(db.Model):
@@ -94,6 +100,7 @@ class Fee(db.Model):
     num_installments = db.Column(db.Integer, nullable=True)
     status = db.Column(db.String(50), nullable=False, default='pending')
     payments = db.relationship('Payment', backref='fee', lazy=True, cascade='all, delete-orphan')
+    last_paid_date = db.Column(db.String(20), nullable=True)
 
     @property
     def amount_paid(self):
@@ -110,3 +117,12 @@ class Payment(db.Model):
     amount = db.Column(db.Float, nullable=False)
     payment_date = db.Column(db.String(20), nullable=False)
     notes = db.Column(db.String(200), nullable=True)
+
+# --- Audit Log Model ---
+class AuditLog(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    action = db.Column(db.String(200), nullable=False)
+    details = db.Column(db.String(500), nullable=True)
+    timestamp = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    user = db.relationship('User', backref='audit_logs')
