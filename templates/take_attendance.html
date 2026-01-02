@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %}Take Attendance{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 py-6">
+    <div class="bg-white shadow-lg rounded-2xl p-6">
+        <h2 class="text-2xl font-bold text-gray-800 mb-4">Take Attendance</h2>
+        <a href="{{ url_for('staff_portal') }}" class="text-blue-600 hover:underline mb-4 inline-block">← Back to Dashboard</a>
+
+        <form method="GET" action="{{ url_for('take_attendance') }}" class="mb-6 p-4 bg-gray-50 rounded-lg">
+            <label for="course_filter" class="block text-gray-700 text-sm font-bold mb-2">Select Course to Mark:</label>
+            <div class="flex gap-4">
+                <select id="course_filter" name="course_filter" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:border-blue-300" onchange="this.form.submit()">
+                    <option value="">-- Select Course --</option>
+                    {% for course in courses %}
+                        <option value="{{ course.name }}" {% if selected_course == course.name %}selected{% endif %}>{{ course.name }}</option>
+                    {% endfor %}
+                </select>
+                <noscript><button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded-lg">Go</button></noscript>
+            </div>
+        </form>
+
+        {% if selected_course and students %}
+            <form method="POST">
+                <input type="hidden" name="course_name" value="{{ selected_course }}">
+                
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-bold text-gray-800">{{ selected_course }} Students</h3>
+                    <div>
+                        <label for="date" class="mr-2 font-semibold text-gray-700">Date:</label>
+                        <input type="date" name="date" value="{{ date_today }}" required class="border rounded-lg px-2 py-1">
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="min-w-full border border-gray-200 rounded-lg overflow-hidden">
+                        <thead class="bg-gray-100 text-gray-700 text-sm">
+                            <tr>
+                                <th class="px-4 py-2 text-left">Student Name</th>
+                                <th class="px-4 py-2 text-center">Present</th>
+                                <th class="px-4 py-2 text-center">Absent</th>
+                                <th class="px-4 py-2 text-center">Late</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200 text-sm">
+                            {% for student in students %}
+                            <tr class="hover:bg-gray-50 transition">
+                                <td class="px-4 py-2 font-medium text-gray-800">{{ student.name }}</td>
+                                <td class="px-4 py-2 text-center">
+                                    <input type="radio" name="status_{{ student.id }}" value="Present" class="w-4 h-4 text-green-600 focus:ring-green-500" required>
+                                </td>
+                                <td class="px-4 py-2 text-center">
+                                    <input type="radio" name="status_{{ student.id }}" value="Absent" class="w-4 h-4 text-red-600 focus:ring-red-500">
+                                </td>
+                                <td class="px-4 py-2 text-center">
+                                    <input type="radio" name="status_{{ student.id }}" value="Late" class="w-4 h-4 text-yellow-600 focus:ring-yellow-500">
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="mt-6">
+                    <button type="submit" class="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-xl hover:bg-green-700 transition shadow-lg">
+                        Submit Attendance
+                    </button>
+                </div>
+            </form>
+        {% elif selected_course %}
+            <p class="text-gray-500 italic text-center py-8">No students found in this course.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

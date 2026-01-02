@@ -1,62 +1,95 @@
 {% extends "base.html" %}
 
 {% block title %}Admin Portal{% endblock %}
+{% block page_title %}Admin Dashboard{% endblock %}
 
 {% block content %}
-<div class="max-w-6xl mx-auto px-4 py-6">
-    <div class="bg-white shadow-lg rounded-2xl p-6">
-        <h2 class="text-2xl font-bold text-gray-800">
-            Welcome to the Admin Dashboard
-        </h2>
-        <p class="text-gray-500 mt-1">
-            Hello, {{ current_user.username }}. Here's a summary of your coaching institution.
-        </p>
+<style>
+    .stat-card {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        display: flex;
+        align-items: center;
+    }
+    .stat-card-icon {
+        font-size: 3em;
+        margin-right: 20px;
+        color: #3498db;
+    }
+    .stat-card-info h3 {
+        margin: 0;
+        font-size: 16px;
+        color: #7f8c8d;
+    }
+    .stat-card-info p {
+        margin: 0;
+        font-size: 28px;
+        font-weight: bold;
+    }
+    .quick-actions a {
+        background: #3498db;
+        color: white;
+        padding: 10px 15px;
+        border-radius: 5px;
+        text-decoration: none;
+        display: inline-block;
+        margin: 5px;
+        transition: background 0.3s;
+    }
+    .quick-actions a:hover {
+        background: #2980b9;
+    }
+</style>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-8">
-            <div class="bg-gray-100 p-6 rounded-xl shadow">
-                <h3 class="text-md font-semibold text-gray-700">Total Students</h3>
-                <p class="text-3xl font-bold text-gray-800 mt-2">{{ total_students }}</p>
-            </div>
-            <div class="bg-gray-100 p-6 rounded-xl shadow">
-                <h3 class="text-md font-semibold text-gray-700">Total Staff</h3>
-                <p class="text-3xl font-bold text-gray-800 mt-2">{{ total_staff }}</p>
-            </div>
-            <div class="bg-gray-100 p-6 rounded-xl shadow">
-                <h3 class="text-md font-semibold text-gray-700">Fees Collected</h3>
-                <p class="text-3xl font-bold text-gray-800 mt-2">₹ {{ "{:,.2f}".format(fees_collected) }}</p>
-            </div>
-            <div class="bg-gray-100 p-6 rounded-xl shadow">
-                <h3 class="text-md font-semibold text-gray-700">Pending Fees</h3>
-                <p class="text-3xl font-bold text-gray-800 mt-2">₹ {{ "{:,.2f}".format(pending_fees) }}</p>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="stat-card">
+                <div class="stat-card-icon"><i class="fas fa-user-graduate"></i></div>
+                <div class="stat-card-info">
+                    <h3>Total Students</h3>
+                    <p>{{ total_students }}</p>
+                </div>
             </div>
         </div>
-        
-        <h3 class="text-xl font-semibold text-gray-800 mt-8 mb-4">Quick Actions</h3>
-        <div class="flex items-center gap-4 flex-wrap">
-            <a href="{{ url_for('add_user') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-xl shadow hover:bg-blue-700 transition">
-                Add New User
-            </a>
-            <a href="{{ url_for('manage_users') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-xl shadow hover:bg-blue-700 transition">
-                Manage Users
-            </a>
-            <a href="{{ url_for('manage_students') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-xl shadow hover:bg-blue-700 transition">
-                Manage Students
-            </a>
-            <a href="{{ url_for('view_courses') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-xl shadow hover:bg-blue-700 transition">
-                Manage Courses
-            </a>
-            <a href="{{ url_for('financial_reports') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-xl shadow hover:bg-blue-700 transition">
-                Financial Reports
-            </a>
-            <a href="{{ url_for('institutional_settings') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-xl shadow hover:bg-blue-700 transition">
-                Settings
-            </a>
-            <a href="{{ url_for('manage_appointments') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-xl shadow hover:bg-purple-700 transition">
-                Manage Appointments
-            </a>
-            <a href="{{ url_for('audit_logs') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-gray-600 text-white text-sm font-medium rounded-xl shadow hover:bg-gray-700 transition">
-                Audit Logs
-            </a>
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="stat-card">
+                <div class="stat-card-icon"><i class="fas fa-chalkboard-teacher" style="color: #2ecc71;"></i></div>
+                <div class="stat-card-info">
+                    <h3>Total Staff</h3>
+                    <p>{{ total_staff }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="stat-card">
+                <div class="stat-card-icon"><i class="fas fa-rupee-sign" style="color: #f1c40f;"></i></div>
+                <div class="stat-card-info">
+                    <h3>Fees Collected</h3>
+                    <p>₹{{ "{:,.2f}".format(fees_collected) }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="stat-card">
+                <div class="stat-card-icon"><i class="fas fa-exclamation-circle" style="color: #e74c3c;"></i></div>
+                <div class="stat-card-info">
+                    <h3>Pending Fees</h3>
+                    <p>₹{{ "{:,.2f}".format(pending_fees) }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-4">
+        <h3>Quick Actions</h3>
+        <div class="quick-actions">
+            <a href="{{ url_for('add_user') }}"><i class="fas fa-plus"></i> Add User</a>
+            <a href="{{ url_for('manage_users') }}"><i class="fas fa-users-cog"></i> Manage Users</a>
+            <a href="{{ url_for('direct_admission') }}"><i class="fas fa-user-plus"></i> Direct Admission</a>
+            <a href="{{ url_for('fees_management') }}"><i class="fas fa-file-invoice-dollar"></i> Fees Management</a>
         </div>
     </div>
 </div>

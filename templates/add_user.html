@@ -1,32 +1,69 @@
 {% extends "base.html" %}
 
 {% block title %}Add New User{% endblock %}
+{% block page_title %}Add New User{% endblock %}
 
 {% block content %}
-<div class="container">
-    <h2>Add New Staff or Receptionist</h2>
+<style>
+    .card {
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        padding: 30px;
+        max-width: 600px;
+        margin: auto;
+    }
+    .form-group {
+        margin-bottom: 15px;
+    }
+    .form-group label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+    }
+    .form-control, .form-select {
+        width: 100%;
+        padding: 10px;
+        border-radius: 4px;
+        border: 1px solid #ccc;
+        box-sizing: border-box; /* Important for padding */
+    }
+    .btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        color: white;
+    }
+    .btn-success { background: #2ecc71; }
+    .btn-secondary { background: #95a5a6; }
+</style>
+
+<div class="card">
     <form method="POST">
         <div class="form-group">
             <label for="name">Full Name:</label>
-            <input type="text" id="name" name="name" required>
+            <input type="text" id="name" name="name" class="form-control" required>
         </div>
         <div class="form-group">
             <label for="username">Username:</label>
-            <input type="text" id="username" name="username" required>
+            <input type="text" id="username" name="username" class="form-control" required>
         </div>
         <div class="form-group">
             <label for="password">Password:</label>
-            <input type="password" id="password" name="password" required>
+            <input type="password" id="password" name="password" class="form-control" required>
         </div>
         <div class="form-group">
             <label for="role">Role:</label>
-            <select id="role" name="role" required>
+            <select id="role" name="role" class="form-select" required>
                 <option value="staff">Staff</option>
                 <option value="receptionist">Receptionist</option>
             </select>
         </div>
-        <button type="submit">Create User</button>
-        <a href="{{ url_for('admin_portal') }}" class="button">Back</a>
+        <div class="mt-4">
+            <button type="submit" class="btn btn-success">Create User</button>
+            <a href="{{ url_for('admin_portal') }}" class="btn btn-secondary">Back</a>
+        </div>
     </form>
 </div>
 {% endblock %}

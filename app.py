@@ -1,7 +1,7 @@
 import site
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
-from models import db, bcrypt, User, Student, Staff, Enquiry, Receptionist, Course, Subject, Appointment, Fee, Payment, AuditLog
+from models import db, bcrypt, User, Student, Staff, Enquiry, Receptionist, Course, Subject, Appointment, Fee, Payment, AuditLog, Attendance
 from datetime import datetime, timedelta
 import math
 
@@ -475,12 +475,77 @@ def manage_appointments():
     appointments = Appointment.query.join(Staff).options(db.joinedload(Appointment.staff)).order_by(Appointment.date.desc(), Appointment.time.desc()).all()
     return render_template('manage_appointments.html', appointments=appointments)
 
+# app.py
+
 @app.route('/staff_portal')
 @login_required
 def staff_portal():
     if current_user.role == 'staff':
+        # Show recent attendance or stats could go here
         return render_template('staff_portal.html', current_user=current_user)
     return redirect(url_for('login'))
+
+@app.route('/staff_portal/take_attendance', methods=['GET', 'POST'])
+@login_required
+def take_attendance():
+    if current_user.role != 'staff':
+        return redirect(url_for('login'))
+
+    courses = Course.query.all()
+    students = []
+    selected_course = request.args.get('course_filter')
+    date_today = datetime.now().strftime('%Y-%m-%d')
+
+    if selected_course:
+        # Get students belonging to this course
+        students = Student.query.join(Enquiry).filter(Enquiry.course_interest == selected_course).all()
+
+    if request.method == 'POST':
+        date = request.form.get('date')
+        course_name = request.form.get('course_name')
+        
+        # The form will submit keys like "status_1", "status_2" where numbers are student IDs
+        count = 0
+        for key, value in request.form.items():
+            if key.startswith('status_'):
+                student_id = int(key.split('_')[1])
+                
+                # Check if attendance already exists for this student on this date
+                existing = Attendance.query.filter_by(
+                    student_id=student_id, 
+                    date=date
+                ).first()
+
+                if existing:
+                    existing.status = value
+                    existing.staff_id = current_user.staff_profile.id
+                else:
+                    new_attendance = Attendance(
+                        date=date,
+                        status=value,
+                        student_id=student_id,
+                        staff_id=current_user.staff_profile.id,
+                        course_name=course_name
+                    )
+                    db.session.add(new_attendance)
+                count += 1
+        
+        db.session.commit()
+        log_action(current_user, 'take_attendance', f"Marked attendance for {count} students in {course_name}.")
+        flash(f"Attendance marked for {count} students.", 'success')
+        return redirect(url_for('staff_portal'))
+
+    return render_template('take_attendance.html', courses=courses, students=students, selected_course=selected_course, date_today=date_today)
+
+@app.route('/staff_portal/view_attendance')
+@login_required
+def view_attendance():
+    if current_user.role != 'staff':
+        return redirect(url_for('login'))
+    
+    # Simple view: latest 50 records
+    attendance_records = Attendance.query.order_by(Attendance.date.desc()).limit(50).all()
+    return render_template('view_attendance.html', attendance_records=attendance_records)
 
 
 @app.route('/receptionist_portal')

@@ -126,3 +126,15 @@ class AuditLog(db.Model):
     details = db.Column(db.String(500), nullable=True)
     timestamp = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     user = db.relationship('User', backref='audit_logs')
+
+
+class Attendance(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    date = db.Column(db.String(20), nullable=False)
+    status = db.Column(db.String(20), nullable=False)  # e.g., 'Present', 'Absent', 'Late'
+    student_id = db.Column(db.Integer, db.ForeignKey('student.id'), nullable=False)
+    staff_id = db.Column(db.Integer, db.ForeignKey('staff.id'), nullable=False)
+    course_name = db.Column(db.String(100), nullable=True) # Snapshot of course at time of attendance
+
+    student_ref = db.relationship('Student', backref='attendance_records')
+    staff_ref = db.relationship('Staff', backref='marked_attendance')

@@ -1,107 +1,113 @@
 {% extends "base.html" %}
 
 {% block title %}Receptionist Portal{% endblock %}
+{% block page_title %}Receptionist Dashboard{% endblock %}
 
 {% block content %}
-<div class="max-w-6xl mx-auto px-4 py-6">
-    <div class="bg-white shadow-lg rounded-2xl p-6">
-        <h2 class="text-2xl font-bold text-gray-800">
-            Welcome, {{ current_user.id }}
-        </h2>
-        <p class="text-gray-500 mt-1">
-            Manage student admissions and fees efficiently.
-        </p>
+<style>
+    .card {
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    .action-card {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        text-align: center;
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        text-decoration: none;
+        color: #2c3e50;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .action-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        color: #3498db;
+    }
+    .action-card i {
+        font-size: 2.5em;
+        margin-bottom: 10px;
+    }
+    .table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+    }
+    .table th, .table td {
+        padding: 12px;
+        text-align: left;
+        border-bottom: 1px solid #ddd;
+    }
+    .table th { background-color: #f2f2f2; }
+</style>
 
-        <div class="flex items-center gap-4 mt-4">
-            <a href="{{ url_for('add_enquiry') }}"
-                class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-xl shadow hover:bg-blue-700 transition">
-                <svg xmlns="http://www.w3.org/2000/svg" 
-                    width="20" height="20" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                    class="inline">
-                    <line x1="12" y1="5" x2="12" y2="19"/>
-                    <line x1="5" y1="12" x2="19" y2="12"/>
-                </svg>
-                Add New Enquiry
-            </a>
-            <a href="{{ url_for('direct_admission') }}"
-                class="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-xl shadow hover:bg-green-700 transition">
-                <svg xmlns="http://www.w3.org/2000/svg" 
-                    width="20" height="20" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                    class="inline">
-                    <line x1="12" y1="5" x2="12" y2="19"/>
-                    <line x1="5" y1="12" x2="19" y2="12"/>
-                </svg>
-                Direct Admission
-            </a>
-            <a href="{{ url_for('schedule_appointment') }}"
-                class="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-xl shadow hover:bg-purple-700 transition">
-                <svg xmlns="http://www.w3.org/2000/svg" 
-                    width="20" height="20" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                    class="inline">
-                    <line x1="12" y1="5" x2="12" y2="19"/>
-                    <line x1="5" y1="12" x2="19" y2="12"/>
-                </svg>
-                Schedule Appointment
-            </a>
-            <a href="{{ url_for('student_profile') }}"
-                class="inline-flex items-center gap-2 px-4 py-2 bg-blue-500 text-white text-sm font-medium rounded-xl shadow hover:bg-blue-600 transition">
-                <svg xmlns="http://www.w3.org/2000/svg" 
-                    width="20" height="20" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                    class="inline">
-                    <path d="M11 20a9 9 0 1 0 0-18 9 9 0 0 0 0 18zm10 2-4.3-4.3"/>
-                </svg>
-                Student Search
-            </a>
-        </div>
-
-        <h3 class="text-xl font-semibold text-gray-800 mt-8">Recent Enquiries</h3>
-
-        {% if enquiries %}
-        <div class="mt-4 overflow-x-auto">
-            <table class="min-w-full border border-gray-200 rounded-lg overflow-hidden">
-                <thead class="bg-gray-100 text-gray-700 text-sm">
-                    <tr>
-                        <th class="px-4 py-2 text-left">Name</th>
-                        <th class="px-4 py-2 text-left">Contact</th>
-                        <th class="px-4 py-2 text-left">Course of Interest</th>
-                        <th class="px-4 py-2 text-left">Joining / Follow-up Date</th>
-                        <th class="px-4 py-2 text-left">Status</th>
-                        <th class="px-4 py-2 text-left">Actions</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-200 text-sm">
-                    {% for enquiry in enquiries %}
-                    <tr class="hover:bg-gray-50 transition">
-                        <td class="px-4 py-2 font-medium text-gray-800">{{ enquiry.name }}</td>
-                        <td class="px-4 py-2">{{ enquiry.contact }}</td>
-                        <td class="px-4 py-2">{{ enquiry.course_interest }}</td>
-                        <td class="px-4 py-2">{{ enquiry.joining_date }}</td>
-                        <td class="px-4 py-2">
-                            <span class="px-2 py-1 rounded-full text-xs font-semibold
-                                {% if enquiry.status == 'Admitted' %} bg-green-100 text-green-700
-                                {% elif enquiry.status == 'Cancelled' %} bg-red-100 text-red-700
-                                {% else %} bg-gray-100 text-gray-700 {% endif %}">
-                                {{ enquiry.status }}
-                            </span>
-                        </td>
-                        <td class="px-4 py-2">
-                            {% if enquiry.status != 'Admitted' and enquiry.status != 'Cancelled' %}
-                                <a href="{{ url_for('admit_student', enquiry_id=enquiry.id) }}" class="text-blue-600 hover:underline">Admit</a>
-                                <a href="{{ url_for('cancel_enquiry', enquiry_id=enquiry.id) }}" class="text-red-600 hover:underline ml-2">Cancel</a>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-        {% else %}
-        <p class="mt-4 text-gray-500 italic">No new enquiries.</p>
-        {% endif %}
+<div class="row">
+    <div class="col-md-3">
+        <a href="{{ url_for('add_enquiry') }}" class="action-card">
+            <i class="fas fa-user-plus"></i>
+            <span>Add New Enquiry</span>
+        </a>
     </div>
+    <div class="col-md-3">
+        <a href="{{ url_for('direct_admission') }}" class="action-card">
+            <i class="fas fa-id-card"></i>
+            <span>Direct Admission</span>
+        </a>
+    </div>
+    <div class="col-md-3">
+        <a href="{{ url_for('schedule_appointment') }}" class="action-card">
+            <i class="fas fa-calendar-plus"></i>
+            <span>Schedule Appointment</span>
+        </a>
+    </div>
+    <div class="col-md-3">
+        <a href="{{ url_for('student_profile') }}" class="action-card">
+            <i class="fas fa-search"></i>
+            <span>Student Search</span>
+        </a>
+    </div>
+</div>
+
+<div class="card mt-4">
+    <h4>Recent Enquiries</h4>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Contact</th>
+                <th>Course Interest</th>
+                <th>Follow-up Date</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for enquiry in enquiries %}
+            <tr>
+                <td>{{ enquiry.name }}</td>
+                <td>{{ enquiry.contact }}</td>
+                <td>{{ enquiry.course_interest }}</td>
+                <td>{{ enquiry.joining_date }}</td>
+                <td>
+                     <span style="padding: 3px 8px; border-radius: 12px; color: white; background-color: {% if enquiry.status == 'Admitted' %}#2ecc71{% elif enquiry.status == 'Cancelled' %}#e74c3c{% else %}#95a5a6{% endif %};">
+                        {{ enquiry.status }}
+                    </span>
+                </td>
+                <td>
+                    {% if enquiry.status != 'Admitted' and enquiry.status != 'Cancelled' %}
+                        <a href="{{ url_for('admit_student', enquiry_id=enquiry.id) }}">Admit</a>
+                        <a href="{{ url_for('cancel_enquiry', enquiry_id=enquiry.id) }}" class="text-danger ms-2">Cancel</a>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
 </div>
 {% endblock %}
