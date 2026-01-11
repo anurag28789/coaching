@@ -1,0 +1,211 @@
+{% extends "base.html" %}
+
+{% block title %}Student History - {{ student.name }}{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 py-6">
+    
+    <div class="flex justify-between items-center mb-6">
+        <div>
+            <h2 class="text-2xl font-bold text-gray-800">{{ student.name }}</h2>
+            <p class="text-gray-500 mt-1">
+                Student ID: #{{ student.id }} | Course: <span class="font-semibold text-blue-600">{{ student.enquiry.course_interest }}</span>
+            </p>
+        </div>
+        <a href="{{ url_for('manage_students') }}" class="bg-gray-500 text-white px-4 py-2 rounded-xl hover:bg-gray-600 transition text-sm font-medium" style="text-decoration: none;">
+            ← Back to List
+        </a>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem;">
+        
+        <div class="bg-white shadow-lg rounded-2xl p-6 border-l-4" style="border-left: 4px solid {% if attendance_percentage >= 75 %}#22c55e{% else %}#ef4444{% endif %};">
+            <div class="flex justify-between items-center mb-2">
+                <h3 class="text-gray-500 text-xs font-bold uppercase">Attendance</h3>
+                <svg style="width: 24px; height: 24px; color: #6b7280;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+            </div>
+            <div class="flex items-baseline gap-2">
+                <span class="text-2xl font-bold text-gray-800">{{ attendance_percentage }}%</span>
+                <span class="text-sm text-gray-500">Present</span>
+            </div>
+        </div>
+
+        <div class="bg-white shadow-lg rounded-2xl p-6 border-l-4" style="border-left: 4px solid #eab308;">
+            <div class="flex justify-between items-center mb-2">
+                <h3 class="text-gray-500 text-xs font-bold uppercase">Pending Fees</h3>
+                <svg style="width: 24px; height: 24px; color: #6b7280;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            </div>
+            {% if fee_record %}
+                <div class="flex items-baseline gap-2">
+                    <span class="text-2xl font-bold text-gray-800">₹{{ "{:,.0f}".format(fee_record.pending_amount) }}</span>
+                </div>
+                <div class="mt-2">
+                    <span class="px-2 py-1 rounded text-xs font-bold uppercase" 
+                          style="background-color: {% if fee_record.status == 'paid' %}#d1fae5; color: #065f46;{% elif fee_record.status == 'partially_paid' %}#fef3c7; color: #b45309;{% else %}#fee2e2; color: #b91c1c;{% endif %}">
+                        {{ fee_record.status|replace('_', ' ') }}
+                    </span>
+                </div>
+            {% else %}
+                <span class="text-sm text-gray-500 italic">No fee record</span>
+            {% endif %}
+        </div>
+
+        <div class="bg-white shadow-lg rounded-2xl p-6 border-l-4" style="border-left: 4px solid #3b82f6;">
+            <div class="flex justify-between items-center mb-2">
+                <h3 class="text-gray-500 text-xs font-bold uppercase">Contact Info</h3>
+                <svg style="width: 24px; height: 24px; color: #6b7280;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
+            </div>
+            <div class="text-sm space-y-1">
+                <p><strong>Phone:</strong> {{ student.contact_no }}</p>
+                <p><strong>Parent:</strong> {{ student.father_name }} ({{ student.father_contact_no }})</p>
+                <p><strong>Address:</strong> {{ student.full_address }}</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="flex gap-4 mb-6 border-b border-gray-200 pb-2 overflow-x-auto">
+        <button onclick="openTab('attendance')" id="btn-attendance" class="tab-btn px-6 py-2 font-bold text-gray-700 rounded-t-lg hover:bg-gray-100 transition focus:outline-none border-b-2 border-transparent">
+            Attendance
+        </button>
+        <button onclick="openTab('fees')" id="btn-fees" class="tab-btn px-6 py-2 font-bold text-gray-700 rounded-t-lg hover:bg-gray-100 transition focus:outline-none border-b-2 border-transparent">
+            Financials
+        </button>
+        <button onclick="openTab('logs')" id="btn-logs" class="tab-btn px-6 py-2 font-bold text-gray-700 rounded-t-lg hover:bg-gray-100 transition focus:outline-none border-b-2 border-transparent">
+            System Logs
+        </button>
+    </div>
+
+    <div id="tab-attendance" class="tab-content">
+        <div class="bg-white shadow-lg rounded-2xl overflow-hidden">
+            <div class="bg-gray-100 px-6 py-4 border-b border-gray-200">
+                <h3 class="font-bold text-gray-700">Attendance Records</h3>
+            </div>
+            <div style="max-height: 400px; overflow-y: auto;">
+                <table class="min-w-full text-sm text-left">
+                    <thead class="bg-gray-50 text-gray-500 sticky top-0">
+                        <tr>
+                            <th class="px-6 py-3">Date</th>
+                            <th class="px-6 py-3">Status</th>
+                            <th class="px-6 py-3">Marked By</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        {% for record in attendance_records %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-3">{{ record.date }}</td>
+                            <td class="px-6 py-3">
+                                <span class="px-2 py-1 rounded-full text-xs font-semibold
+                                    {% if record.status == 'Present' %} bg-green-100 text-green-700
+                                    {% elif record.status == 'Absent' %} bg-red-100 text-red-700
+                                    {% else %} bg-yellow-100 text-yellow-700 {% endif %}">
+                                    {{ record.status }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-3 text-gray-500">{{ record.staff_ref.name }}</td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="3" class="px-6 py-4 text-center text-gray-500 italic">No attendance records found.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="tab-fees" class="tab-content hidden" style="display: none;">
+        <div class="bg-white shadow-lg rounded-2xl overflow-hidden">
+            <div class="bg-gray-100 px-6 py-4 border-b border-gray-200">
+                <h3 class="font-bold text-gray-700">Fee Transactions</h3>
+            </div>
+            <div class="p-6">
+                {% if fee_record and fee_record.payments %}
+                    <table class="min-w-full text-sm text-left border rounded-lg">
+                        <thead class="bg-gray-50 text-gray-500">
+                            <tr>
+                                <th class="px-6 py-3">Date</th>
+                                <th class="px-6 py-3">Amount</th>
+                                <th class="px-6 py-3">Receipt</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                            {% for payment in fee_record.payments %}
+                            <tr>
+                                <td class="px-6 py-3">{{ payment.payment_date }}</td>
+                                <td class="px-6 py-3 font-bold text-green-600">₹{{ "{:,.2f}".format(payment.amount) }}</td>
+                                <td class="px-6 py-3">
+                                    <span class="bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-bold">PAID</span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot class="bg-gray-50 font-bold text-gray-700">
+                            <tr>
+                                <td class="px-6 py-3 text-right">Total Paid:</td>
+                                <td class="px-6 py-3 text-green-600">₹{{ "{:,.2f}".format(fee_record.amount_paid) }}</td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                {% else %}
+                    <p class="text-gray-500 italic text-center">No transactions found.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div id="tab-logs" class="tab-content hidden" style="display: none;">
+        <div class="bg-white shadow-lg rounded-2xl overflow-hidden">
+            <div class="bg-gray-100 px-6 py-4 border-b border-gray-200">
+                <h3 class="font-bold text-gray-700">Audit & Activity Logs</h3>
+            </div>
+            <div class="p-6">
+                <ul class="border-l-2 border-gray-200 ml-3 space-y-6">
+                    {% for log in related_logs %}
+                    <li class="relative pl-6">
+                        <span class="absolute top-0 left-[-9px] bg-white border-2 border-blue-500 rounded-full w-4 h-4"></span>
+                        <div class="text-sm">
+                            <p class="font-bold text-gray-800">{{ log.action|replace('_', ' ')|capitalize }}</p>
+                            <p class="text-gray-500 text-xs">{{ log.timestamp.strftime('%Y-%m-%d %H:%M') }} by <strong>{{ log.user.username }}</strong></p>
+                            <p class="text-gray-600 bg-gray-50 p-2 mt-1 rounded border border-gray-100">{{ log.details }}</p>
+                        </div>
+                    </li>
+                    {% else %}
+                    <li class="pl-6 text-gray-500 italic">No logs found for this student.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    function openTab(tabName) {
+        // 1. Hide all contents
+        var contents = document.getElementsByClassName("tab-content");
+        for (var i = 0; i < contents.length; i++) {
+            contents[i].style.display = "none";
+        }
+
+        // 2. Remove 'active' style from all buttons
+        var buttons = document.getElementsByClassName("tab-btn");
+        for (var i = 0; i < buttons.length; i++) {
+            buttons[i].classList.remove("text-blue-600", "border-blue-600");
+            buttons[i].classList.add("text-gray-700", "border-transparent");
+        }
+
+        // 3. Show specific tab
+        document.getElementById("tab-" + tabName).style.display = "block";
+
+        // 4. Add 'active' style to clicked button
+        var activeBtn = document.getElementById("btn-" + tabName);
+        activeBtn.classList.remove("text-gray-700", "border-transparent");
+        activeBtn.classList.add("text-blue-600", "border-blue-600");
+    }
+
+    // Open default tab on load
+    document.addEventListener("DOMContentLoaded", function() {
+        openTab('attendance');
+    });
+</script>
+{% endblock %}

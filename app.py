@@ -1,7 +1,7 @@
 import site
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
-from models import db, bcrypt, User, Student, Staff, Enquiry, Receptionist, Course, Subject, Appointment, Fee, Payment, AuditLog, Attendance
+from models import db, bcrypt, User, Student, Staff, Enquiry, Receptionist, Course, Subject, Appointment, Fee, Payment, AuditLog, Attendance, Setting
 from datetime import datetime, timedelta
 import math
 
@@ -20,9 +20,9 @@ login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
 # Global settings dictionary (simulated)
-settings = {
-    'global_discount_percentage': 0.0
-}
+#settings = {
+#    'global_discount_percentage': 0.0
+#}
 
 # --- User Loader for Flask-Login ---
 @login_manager.user_loader
@@ -239,25 +239,104 @@ def toggle_active(user_id):
         flash(f"User '{user_to_toggle.username}' has been {status}.", 'success')
     return redirect(url_for('manage_users'))
 
+# app.py
+
 @app.route('/admin_portal/manage_students', methods=['GET', 'POST'])
 @login_required
 def manage_students():
     if current_user.role != 'admin':
         return redirect(url_for('login'))
     
+    # Start with a base query joining Enquiry
     query = Student.query.join(Enquiry)
+    
     search_query = request.form.get('search_query')
     course_filter = request.form.get('course_filter')
     
     if request.method == 'POST':
+        # --- IMPROVED SEARCH LOGIC ---
         if search_query:
-            query = query.filter(Student.name.like(f'%{search_query}%'))
+            # Cast ID to string so we can search it like text
+            search_term = f'%{search_query}%'
+            query = query.filter(db.or_(
+                Student.name.like(search_term),             # Search Name
+                db.cast(Student.id, db.String).like(search_term), # Search ID
+                Student.contact_no.like(search_term),       # Search Student Phone
+                Student.father_contact_no.like(search_term) # Search Father Phone
+            ))
+            
+        # Keep Course Filter separate (it's useful to filter lists)
         if course_filter and course_filter != 'All':
             query = query.filter(Enquiry.course_interest == course_filter)
             
     students = query.all()
     courses = Course.query.all()
-    return render_template('manage_students.html', students=students, courses=courses)
+    
+    # Pass search_query back to template so it stays in the box
+    return render_template('manage_students.html', students=students, courses=courses, search_query=search_query, course_filter=course_filter)
+
+# --- ADD THIS NEW ROUTE FOR DELETING STUDENTS ---
+@app.route('/admin_portal/delete_student/<int:student_id>', methods=['POST'])
+@login_required
+def delete_student(student_id):
+    if current_user.role != 'admin':
+        return redirect(url_for('login'))
+        
+    student = db.session.get(Student, student_id)
+    if student:
+        # Optional: Delete associated User account if it exists
+        if student.user_id:
+            user = db.session.get(User, student.user_id)
+            if user:
+                db.session.delete(user)
+
+        db.session.delete(student)
+        db.session.commit()
+        log_action(current_user, 'delete_student', f"Deleted student '{student.name}' (ID: {student_id}).")
+        flash(f"Student '{student.name}' deleted successfully.", 'success')
+    else:
+        flash("Student not found.", 'danger')
+        
+    return redirect(url_for('manage_students'))
+
+
+@app.route('/admin_portal/student_history/<int:student_id>')
+@login_required
+def student_history(student_id):
+    if current_user.role != 'admin':
+        return redirect(url_for('login'))
+        
+    student = db.session.get(Student, student_id)
+    if not student:
+        flash("Student not found.", 'danger')
+        return redirect(url_for('manage_students'))
+        
+    # 1. Fetch Fees
+    fee_record = Fee.query.filter_by(student_id=student.id).first()
+    
+    # 2. Fetch Attendance
+    attendance_records = Attendance.query.filter_by(student_id=student.id).order_by(Attendance.date.desc()).all()
+    
+    # Calculate Attendance Stats
+    total_classes = len(attendance_records)
+    days_present = sum(1 for a in attendance_records if a.status == 'Present')
+    
+    # RENAME THIS VARIABLE to match the template
+    attendance_percentage = (days_present / total_classes * 100) if total_classes > 0 else 0.0
+    
+    # 3. Fetch Related Audit Logs
+    related_logs = AuditLog.query.filter(AuditLog.details.like(f"%{student.name}%")).order_by(AuditLog.timestamp.desc()).all()
+
+    return render_template(
+        'student_history.html',
+        student=student,
+        fee_record=fee_record,
+        attendance_records=attendance_records,
+        # PASS IT AS 'attendance_percentage'
+        attendance_percentage=round(attendance_percentage, 1), 
+        related_logs=related_logs
+    )
+
 
 @app.route('/admin_portal/edit_student/<int:student_id>', methods=['GET', 'POST'])
 @login_required
@@ -310,13 +389,32 @@ def institutional_settings():
         return redirect(url_for('login'))
     
     if request.method == 'POST':
-        settings['global_discount_percentage'] = float(request.form.get('global_discount_percentage'))
-        log_action(current_user, 'update_settings', f"Updated global discount to {settings['global_discount_percentage']}%.")
+        # Get the value from the form
+        discount_value = request.form.get('global_discount_percentage')
+        
+        # Check if the setting exists, if so update it, else create it
+        discount_setting = Setting.query.filter_by(key='global_discount_percentage').first()
+        if discount_setting:
+            discount_setting.value = discount_value
+        else:
+            new_setting = Setting(key='global_discount_percentage', value=discount_value)
+            db.session.add(new_setting)
+            
+        db.session.commit()
+        log_action(current_user, 'update_settings', f"Updated global discount to {discount_value}%.")
         flash("Settings updated successfully.", 'success')
         return redirect(url_for('institutional_settings'))
 
-    return render_template('institutional_settings.html', settings=settings)
+    # Load settings to display in the form
+    settings_list = Setting.query.all()
+    # Convert list of objects to a dictionary for easy access in template
+    settings_dict = {s.key: s.value for s in settings_list}
+    
+    # Set default if it doesn't exist yet
+    if 'global_discount_percentage' not in settings_dict:
+        settings_dict['global_discount_percentage'] = '0.0'
 
+    return render_template('institutional_settings.html', settings=settings_dict)
 
 @app.route('/admin_portal/courses')
 @login_required
@@ -475,15 +573,50 @@ def manage_appointments():
     appointments = Appointment.query.join(Staff).options(db.joinedload(Appointment.staff)).order_by(Appointment.date.desc(), Appointment.time.desc()).all()
     return render_template('manage_appointments.html', appointments=appointments)
 
-# app.py
 
 @app.route('/staff_portal')
 @login_required
 def staff_portal():
-    if current_user.role == 'staff':
-        # Show recent attendance or stats could go here
-        return render_template('staff_portal.html', current_user=current_user)
-    return redirect(url_for('login'))
+    if current_user.role != 'staff':
+        return redirect(url_for('login'))
+    
+    staff = current_user.staff_profile
+    
+    # 1. Get My Subjects (Already linked via database relationship)
+    my_subjects = staff.subjects
+    
+    # 2. Get My Courses (Unique list of courses these subjects belong to)
+    # We use a set to avoid duplicates if teacher teaches 2 subjects in same course
+    my_course_names = set(sub.course.name for sub in my_subjects)
+    
+    # 3. Get My Students
+    # Logic: Find students whose Enquiry 'course_interest' matches the teacher's courses
+    if my_course_names:
+        my_students = Student.query.join(Enquiry).filter(
+            Enquiry.course_interest.in_(my_course_names)
+        ).all()
+    else:
+        my_students = []
+
+    return render_template('staff_portal.html', 
+                         staff=staff, 
+                         my_subjects=my_subjects, 
+                         my_students=my_students)
+
+# --- Placeholder Routes for New Features ---
+@app.route('/staff_portal/enter_marks', methods=['GET', 'POST'])
+@login_required
+def enter_marks():
+    # We will build this fully next
+    flash("Marks entry feature coming soon!", "info")
+    return redirect(url_for('staff_portal'))
+
+@app.route('/staff_portal/upload_assignment', methods=['GET', 'POST'])
+@login_required
+def upload_assignment():
+    # We will build this fully next
+    flash("Assignment upload feature coming soon!", "info")
+    return redirect(url_for('staff_portal'))
 
 @app.route('/staff_portal/take_attendance', methods=['GET', 'POST'])
 @login_required

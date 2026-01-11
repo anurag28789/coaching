@@ -1,42 +1,137 @@
 {% extends "base.html" %}
 
-{% block title %}Staff Portal{% endblock %}
+{% block title %}Staff Dashboard{% endblock %}
 
 {% block content %}
-<div class="max-w-6xl mx-auto px-4 py-6">
-    <div class="bg-white shadow-lg rounded-2xl p-6">
-        <h2 class="text-2xl font-bold text-gray-800">
-            Welcome, {{ current_user.staff_profile.name or current_user.username }}
-        </h2>
-        <p class="text-gray-500 mt-1">
-            Manage your daily tasks, attendance, and student interactions.
-        </p>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
-            <a href="{{ url_for('take_attendance') }}" class="block p-6 bg-blue-50 border border-blue-100 rounded-xl hover:bg-blue-100 transition group">
-                <div class="flex items-center gap-4">
-                    <div class="p-3 bg-blue-500 text-white rounded-lg group-hover:bg-blue-600 transition">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><polyline points="17 11 19 13 23 9"></polyline></svg>
-                    </div>
-                    <div>
-                        <h3 class="text-lg font-bold text-gray-800">Take Attendance</h3>
-                        <p class="text-sm text-gray-600">Mark daily attendance for your classes.</p>
-                    </div>
-                </div>
-            </a>
-
-            <a href="{{ url_for('view_attendance') }}" class="block p-6 bg-purple-50 border border-purple-100 rounded-xl hover:bg-purple-100 transition group">
-                <div class="flex items-center gap-4">
-                    <div class="p-3 bg-purple-500 text-white rounded-lg group-hover:bg-purple-600 transition">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-                    </div>
-                    <div>
-                        <h3 class="text-lg font-bold text-gray-800">View History</h3>
-                        <p class="text-sm text-gray-600">Check past attendance logs.</p>
-                    </div>
-                </div>
-            </a>
+<div class="max-w-7xl mx-auto px-4 py-8">
+    
+    <div class="flex justify-between items-center mb-8">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-900">Welcome, {{ staff.name }} 👋</h1>
+            <p class="text-gray-500 mt-1">Here is your teaching schedule and student list.</p>
+        </div>
+        <div class="text-right">
+            <span class="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded border border-blue-200">
+                Staff ID: #{{ staff.id }}
+            </span>
         </div>
     </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+        <a href="{{ url_for('take_attendance') }}" class="group block bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-all hover:border-blue-300">
+            <div class="flex items-center gap-4">
+                <div class="p-3 bg-blue-50 text-blue-600 rounded-lg group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                    <svg style="width: 24px; height: 24px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+                </div>
+                <div>
+                    <h3 class="font-bold text-gray-800 group-hover:text-blue-600">Mark Attendance</h3>
+                    <p class="text-sm text-gray-500">Record daily student presence</p>
+                </div>
+            </div>
+        </a>
+
+        <a href="{{ url_for('enter_marks') }}" class="group block bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-all hover:border-purple-300">
+            <div class="flex items-center gap-4">
+                <div class="p-3 bg-purple-50 text-purple-600 rounded-lg group-hover:bg-purple-600 group-hover:text-white transition-colors">
+                    <svg style="width: 24px; height: 24px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                </div>
+                <div>
+                    <h3 class="font-bold text-gray-800 group-hover:text-purple-600">Enter Marks</h3>
+                    <p class="text-sm text-gray-500">Update exam results</p>
+                </div>
+            </div>
+        </a>
+
+        <a href="{{ url_for('upload_assignment') }}" class="group block bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-all hover:border-green-300">
+            <div class="flex items-center gap-4">
+                <div class="p-3 bg-green-50 text-green-600 rounded-lg group-hover:bg-green-600 group-hover:text-white transition-colors">
+                    <svg style="width: 24px; height: 24px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                </div>
+                <div>
+                    <h3 class="font-bold text-gray-800 group-hover:text-green-600">Upload Homework</h3>
+                    <p class="text-sm text-gray-500">Share notes & assignments</p>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        <div class="lg:col-span-1">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="px-5 py-4 bg-gray-50 border-b border-gray-200">
+                    <h3 class="font-bold text-gray-800">My Subjects</h3>
+                </div>
+                <div class="p-4">
+                    {% if my_subjects %}
+                        <div class="space-y-3">
+                            {% for subject in my_subjects %}
+                            <div class="flex items-center p-3 bg-white border rounded-lg hover:border-blue-400 transition-colors">
+                                <div class="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-sm mr-3">
+                                    {{ subject.name[:2] | upper }}
+                                </div>
+                                <div>
+                                    <p class="font-bold text-gray-800">{{ subject.name }}</p>
+                                    <p class="text-xs text-gray-500">{{ subject.course.name }}</p>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-6">
+                            <p class="text-gray-400 italic mb-2">No subjects assigned yet.</p>
+                            <p class="text-xs text-gray-500">Contact Admin to assign subjects.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="lg:col-span-2">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="px-6 py-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
+                    <h3 class="font-bold text-gray-800">My Students</h3>
+                    <span class="bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded-full">{{ my_students|length }} Students</span>
+                </div>
+                
+                <div class="overflow-x-auto">
+                    {% if my_students %}
+                    <table class="min-w-full text-sm text-left">
+                        <thead class="bg-white text-gray-500 border-b">
+                            <tr>
+                                <th class="px-6 py-3 font-medium">Name</th>
+                                <th class="px-6 py-3 font-medium">Course</th>
+                                <th class="px-6 py-3 font-medium">Contact</th>
+                                <th class="px-6 py-3 font-medium text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                            {% for student in my_students %}
+                            <tr class="hover:bg-gray-50 transition">
+                                <td class="px-6 py-3 font-medium text-gray-900">{{ student.name }}</td>
+                                <td class="px-6 py-3">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                                        {{ student.enquiry.course_interest }}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-3 text-gray-500">{{ student.contact_no }}</td>
+                                <td class="px-6 py-3 text-right">
+                                    <a href="#" class="text-blue-600 hover:text-blue-800 text-xs font-bold uppercase">View Profile</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% else %}
+                    <div class="text-center py-12">
+                        <svg style="width: 48px; height: 48px;" class="text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                        <p class="text-gray-500 italic">No students found in your assigned courses.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+    </div>
 </div>
-{% endblock %}
+{% endblock %}3

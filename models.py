@@ -6,6 +6,12 @@ from datetime import datetime
 db = SQLAlchemy()
 bcrypt = Bcrypt()
 
+# --- ASSOCIATION TABLE (Must be defined BEFORE Staff class) ---
+staff_subjects = db.Table('staff_subjects',
+    db.Column('staff_id', db.Integer, db.ForeignKey('staff.id'), primary_key=True),
+    db.Column('subject_id', db.Integer, db.ForeignKey('subject.id'), primary_key=True)
+)
+
 # --- User Model ---
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
@@ -13,8 +19,12 @@ class User(db.Model, UserMixin):
     password_hash = db.Column(db.String(60), nullable=False)
     role = db.Column(db.String(20), nullable=False)
     is_active = db.Column(db.Boolean, nullable=False, default=True)
+    
+    # Relationships
     staff_profile = db.relationship('Staff', backref='user', uselist=False)
     receptionist_profile = db.relationship('Receptionist', backref='user', uselist=False)
+    # If you added Student Portal earlier, ensure this line exists:
+    student_profile = db.relationship('Student', backref='user', uselist=False)
 
     def __repr__(self):
         return f"User('{self.username}', '{self.role}')"
@@ -25,9 +35,6 @@ class User(db.Model, UserMixin):
     def check_password(self, password):
         return bcrypt.check_password_hash(self.password_hash, password)
 
-    def is_active(self):
-        return self.is_active
-
 # --- Student Model ---
 class Student(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -36,7 +43,10 @@ class Student(db.Model):
     enquiry_id = db.Column(db.Integer, db.ForeignKey('enquiry.id'), unique=True, nullable=True)
     enquiry = db.relationship('Enquiry', backref='student', uselist=False)
     
-    # New fields from the admission form
+    # User Link (For Student Portal)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), unique=True, nullable=True)
+    
+    # Personal Details
     father_name = db.Column(db.String(100), nullable=True)
     qualification = db.Column(db.String(100), nullable=True)
     contact_no = db.Column(db.String(20), nullable=True)
@@ -45,14 +55,18 @@ class Student(db.Model):
     full_address = db.Column(db.String(200), nullable=True)
     exam_type = db.Column(db.String(100), nullable=True)
     target_exam = db.Column(db.String(100), nullable=True)
+    
     fees = db.relationship('Fee', backref='student', lazy=True, cascade='all, delete-orphan')
-
 
 # --- Staff Model ---
 class Staff(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), unique=True, nullable=False)
+    
+    # Relationship to Subject using the table defined above
+    subjects = db.relationship('Subject', secondary=staff_subjects, lazy='subquery',
+        backref=db.backref('teachers', lazy=True))
 
 # --- Receptionist Model ---
 class Receptionist(db.Model):
@@ -81,6 +95,7 @@ class Subject(db.Model):
     name = db.Column(db.String(100), nullable=False)
     course_id = db.Column(db.Integer, db.ForeignKey('course.id'), nullable=False)
 
+# --- Appointment Model ---
 class Appointment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     visitor_name = db.Column(db.String(100), nullable=False)
@@ -110,7 +125,7 @@ class Fee(db.Model):
     def pending_amount(self):
         return self.total_amount - self.amount_paid
     
-# --- Payment Model for Transaction History ---
+# --- Payment Model ---
 class Payment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     fee_id = db.Column(db.Integer, db.ForeignKey('fee.id'), nullable=False)
@@ -127,14 +142,23 @@ class AuditLog(db.Model):
     timestamp = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     user = db.relationship('User', backref='audit_logs')
 
-
+# --- Attendance Model ---
 class Attendance(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     date = db.Column(db.String(20), nullable=False)
-    status = db.Column(db.String(20), nullable=False)  # e.g., 'Present', 'Absent', 'Late'
+    status = db.Column(db.String(20), nullable=False)
     student_id = db.Column(db.Integer, db.ForeignKey('student.id'), nullable=False)
     staff_id = db.Column(db.Integer, db.ForeignKey('staff.id'), nullable=False)
-    course_name = db.Column(db.String(100), nullable=True) # Snapshot of course at time of attendance
+    course_name = db.Column(db.String(100), nullable=True)
 
     student_ref = db.relationship('Student', backref='attendance_records')
     staff_ref = db.relationship('Staff', backref='marked_attendance')
+
+# --- Settings Model ---
+class Setting(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    key = db.Column(db.String(50), unique=True, nullable=False)
+    value = db.Column(db.String(200), nullable=True)
+
+    def __repr__(self):
+        return f"Setting('{self.key}', '{self.value}')"
