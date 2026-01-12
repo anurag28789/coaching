@@ -825,7 +825,8 @@ def admit_student(enquiry_id):
 @app.route('/receptionist_portal/direct_admission', methods=['GET', 'POST'])
 @login_required
 def direct_admission():
-    if current_user.role != 'receptionist':
+    # CHANGE 1: Allow both Receptionist AND Admin
+    if current_user.role not in ['receptionist', 'admin']:
         return redirect(url_for('login'))
     
     courses = Course.query.all()
@@ -901,10 +902,14 @@ def direct_admission():
         db.session.commit()
         log_action(current_user, 'direct_admission', f"Directly admitted student '{name}'.")
         flash(f"Direct admission for {name} was successful!", 'success')
-        return redirect(url_for('receptionist_portal'))
+        
+        # CHANGE 2: Redirect based on who is logged in
+        if current_user.role == 'admin':
+            return redirect(url_for('admin_portal'))
+        else:
+            return redirect(url_for('receptionist_portal'))
 
     return render_template('direct_admission.html', courses=courses)
-
 
 @app.route('/receptionist_portal/schedule_appointment', methods=['GET', 'POST'])
 @login_required
@@ -942,7 +947,8 @@ def schedule_appointment():
 @app.route('/receptionist_portal/fees_management')
 @login_required
 def fees_management():
-    if current_user.role != 'receptionist':
+    # CHANGE: Allow both Receptionist AND Admin
+    if current_user.role not in ['receptionist', 'admin']:
         return redirect(url_for('login'))
     
     students = Student.query.options(db.joinedload(Student.fees)).all()
@@ -953,7 +959,8 @@ def fees_management():
 @app.route('/receptionist_portal/record_payment/<int:student_id>', methods=['GET', 'POST'])
 @login_required
 def record_payment(student_id):
-    if current_user.role != 'receptionist':
+    # CHANGE: Allow both Receptionist AND Admin
+    if current_user.role not in ['receptionist', 'admin']:
         return redirect(url_for('login'))
 
     fee_record = Fee.query.filter_by(student_id=student_id).first()
@@ -977,6 +984,7 @@ def record_payment(student_id):
         db.session.add(new_payment)
         db.session.commit()
 
+        # Update status based on payment
         if fee_record.amount_paid >= fee_record.total_amount:
             fee_record.status = 'paid'
         elif fee_record.amount_paid > 0:
@@ -988,7 +996,6 @@ def record_payment(student_id):
         return redirect(url_for('fees_management'))
 
     return render_template('record_payment.html', fee_record=fee_record, student=student)
-
 
 @app.route('/receptionist_portal/student_profile')
 @app.route('/receptionist_portal/student_profile/<int:student_id>')

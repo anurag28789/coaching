@@ -6,10 +6,16 @@ from datetime import datetime
 db = SQLAlchemy()
 bcrypt = Bcrypt()
 
-# --- ASSOCIATION TABLE (Must be defined BEFORE Staff class) ---
+# --- ASSOCIATION TABLES ---
 staff_subjects = db.Table('staff_subjects',
     db.Column('staff_id', db.Integer, db.ForeignKey('staff.id'), primary_key=True),
     db.Column('subject_id', db.Integer, db.ForeignKey('subject.id'), primary_key=True)
+)
+
+# NEW: Link Staff to Batches
+staff_batches = db.Table('staff_batches',
+    db.Column('staff_id', db.Integer, db.ForeignKey('staff.id'), primary_key=True),
+    db.Column('batch_id', db.Integer, db.ForeignKey('batch.id'), primary_key=True)
 )
 
 # --- User Model ---
@@ -20,10 +26,8 @@ class User(db.Model, UserMixin):
     role = db.Column(db.String(20), nullable=False)
     is_active = db.Column(db.Boolean, nullable=False, default=True)
     
-    # Relationships
     staff_profile = db.relationship('Staff', backref='user', uselist=False)
     receptionist_profile = db.relationship('Receptionist', backref='user', uselist=False)
-    # If you added Student Portal earlier, ensure this line exists:
     student_profile = db.relationship('Student', backref='user', uselist=False)
 
     def __repr__(self):
@@ -40,11 +44,14 @@ class Student(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     date_of_admission = db.Column(db.String(20), nullable=True)
+    
+    # Links
     enquiry_id = db.Column(db.Integer, db.ForeignKey('enquiry.id'), unique=True, nullable=True)
     enquiry = db.relationship('Enquiry', backref='student', uselist=False)
-    
-    # User Link (For Student Portal)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), unique=True, nullable=True)
+    
+    # NEW: Link to Batch
+    batch_id = db.Column(db.Integer, db.ForeignKey('batch.id'), nullable=True)
     
     # Personal Details
     father_name = db.Column(db.String(100), nullable=True)
@@ -64,8 +71,12 @@ class Staff(db.Model):
     name = db.Column(db.String(100), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), unique=True, nullable=False)
     
-    # Relationship to Subject using the table defined above
+    # Subjects they teach
     subjects = db.relationship('Subject', secondary=staff_subjects, lazy='subquery',
+        backref=db.backref('teachers', lazy=True))
+        
+    # NEW: Batches they manage/teach
+    batches = db.relationship('Batch', secondary=staff_batches, lazy='subquery',
         backref=db.backref('teachers', lazy=True))
 
 # --- Receptionist Model ---
@@ -88,6 +99,21 @@ class Course(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), unique=True, nullable=False)
     subjects = db.relationship('Subject', backref='course', lazy=True, cascade='all, delete-orphan')
+    # NEW: Relationship to Batches
+    batches = db.relationship('Batch', backref='course', lazy=True, cascade='all, delete-orphan')
+
+# --- NEW: Batch Model ---
+class Batch(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False) # e.g. "NEET Droppers Morning"
+    start_time = db.Column(db.String(20), nullable=True)
+    end_time = db.Column(db.String(20), nullable=True)
+    
+    # Link to Course
+    course_id = db.Column(db.Integer, db.ForeignKey('course.id'), nullable=False)
+    
+    # Relationship to Students
+    students = db.relationship('Student', backref='batch', lazy=True)
 
 # --- Subject Model ---
 class Subject(db.Model):
@@ -159,6 +185,3 @@ class Setting(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     key = db.Column(db.String(50), unique=True, nullable=False)
     value = db.Column(db.String(200), nullable=True)
-
-    def __repr__(self):
-        return f"Setting('{self.key}', '{self.value}')"
