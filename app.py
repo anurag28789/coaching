@@ -1084,3 +1084,41 @@ if __name__ == '__main__':
         db.create_all()
         create_initial_data()
     app.run(debug=True)
+
+# ----------- BATCH ROUTES (ADDED) -----------
+@app.route('/admin_portal/manage_batches', methods=['GET','POST'])
+@login_required
+def manage_batches():
+    if current_user.role!='admin': return redirect(url_for('login'))
+    if request.method=='POST':
+        db.session.add(Batch(
+            name=request.form['batch_name'],
+            course_id=request.form['course_id'],
+            start_time=request.form['start_time'],
+            end_time=request.form['end_time']
+        ))
+        db.session.commit()
+    return render_template('manage_batches.html', batches=Batch.query.all(), courses=Course.query.all())
+
+@app.route('/admin_portal/assign_batches/<int:staff_id>', methods=['GET','POST'])
+@login_required
+def assign_batches(staff_id):
+    staff=db.session.get(Staff,staff_id)
+    if request.method=='POST':
+        staff.batches=[]
+        for b in request.form.getlist('batches'):
+            staff.batches.append(db.session.get(Batch,int(b)))
+        db.session.commit()
+        return redirect(url_for('manage_staff'))
+    return render_template('assign_batches.html', staff=staff, batches=Batch.query.all())
+
+# Override staff portal to use batches
+@app.route('/staff_portal_batches')
+@login_required
+def staff_portal_batches():
+    staff=current_user.staff_profile
+    students=[]
+    for b in staff.batches:
+        students.extend(b.students)
+    students=list({s.id:s for s in students}.values())
+    return render_template('staff_portal.html', staff=staff, my_students=students)
